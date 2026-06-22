@@ -8,10 +8,10 @@
 
 Aura AI is a full-stack, research-grade SaaS platform with **two core operational modes**:
 
-| Mode | Description |
-|------|-------------|
-| 🔬 **Research Mode** | Upload a room image → receive occupancy maps, symmetry analysis, space utilization scores, clutter indices, placement reasoning, and accessibility metrics. |
-| 🎨 **Smart SaaS Mode** | Upload a room image + a style prompt → receive AI-generated redesign renders, before/after comparisons, and curated decor inspirations. |
+| Mode                       | Description                                                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔬 **Research Lab**        | Upload a room image → receive occupancy maps, symmetry analysis, space utilization scores, clutter indices, placement reasoning, and accessibility metrics. |
+| 🎨 **Smart Design Studio** | Upload a room image + a style prompt → receive AI-generated redesign renders, before/after comparisons, and curated decor inspirations.                     |
 
 The platform's intellectual property is its **deterministic, explainable spatial intelligence engine** — powered by a custom Genetic Algorithm optimizer, YOLOv8 object detection, and an explainable scoring architecture. Generative AI (Stable Diffusion) is only used for the final image render step.
 
@@ -94,39 +94,42 @@ Stable Diffusion Generator → AI render of optimized/restyled room (final outpu
 ## 🛠️ Tech Stack
 
 ### Backend
-| Technology | Purpose |
-|-----------|---------|
-| **FastAPI** | High-performance async REST API framework |
-| **Python 3.12+** | Core runtime |
-| **PostgreSQL** | Relational database (rooms, users, analyses) |
-| **SQLAlchemy 2.x** | ORM with typed declarative models |
-| **Alembic** | Database schema migration management |
-| **Celery + Redis** | Distributed background task queues |
-| **Pydantic v2** | Request/response validation |
-| **PyJWT** | JWT access + refresh token signing |
-| **bcrypt** | Secure password hashing |
-| **Pillow** | Image compression and progressive JPEG encoding |
-| **Cloudinary** | CDN image storage (production) |
-| **Docker** | Containerized development and deployment |
+
+| Technology         | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| **FastAPI**        | High-performance async REST API framework       |
+| **Python 3.12+**   | Core runtime                                    |
+| **PostgreSQL**     | Relational database (rooms, users, analyses)    |
+| **SQLAlchemy 2.x** | ORM with typed declarative models               |
+| **Alembic**        | Database schema migration management            |
+| **Celery + Redis** | Distributed background task queues              |
+| **Pydantic v2**    | Request/response validation                     |
+| **PyJWT**          | JWT access + refresh token signing              |
+| **bcrypt**         | Secure password hashing                         |
+| **Pillow**         | Image compression and progressive JPEG encoding |
+| **Cloudinary**     | CDN image storage (production)                  |
+| **Docker**         | Containerized development and deployment        |
 
 ### Frontend
-| Technology | Purpose |
-|-----------|---------|
-| **Next.js 15** | App Router, server components, file-based routing |
-| **TypeScript** | Full type safety |
-| **Tailwind CSS v4** | Utility-first styling |
-| **Zustand** | Lightweight global state management |
-| **TanStack Query v5** | Server state, caching, background refetching |
-| **Framer Motion** | Animations and page transitions |
-| **Axios** | HTTP API client |
-| **Lucide React** | Icon library |
-| **Recharts** | Radar and metric charts |
+
+| Technology            | Purpose                                           |
+| --------------------- | ------------------------------------------------- |
+| **Next.js 15**        | App Router, server components, file-based routing |
+| **TypeScript**        | Full type safety                                  |
+| **Tailwind CSS v4**   | Utility-first styling                             |
+| **Zustand**           | Lightweight global state management               |
+| **TanStack Query v5** | Server state, caching, background refetching      |
+| **Framer Motion**     | Animations and page transitions                   |
+| **Axios**             | HTTP API client                                   |
+| **Lucide React**      | Icon library                                      |
+| **Recharts**          | Radar and metric charts                           |
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Docker Desktop** installed and running
 - **Node.js 20+** (for frontend local development)
 - **Python 3.12+** (for backend local development)
@@ -163,6 +166,7 @@ npm run dev
 ### Option B: Manual Local Development
 
 See detailed setup instructions in:
+
 - [`backend/README.md`](./backend/README.md) — Backend setup, environment variables, Celery workers
 - [`frontend/README.md`](./frontend/README.md) — Frontend setup, environment variables, scripts
 
@@ -170,23 +174,23 @@ See detailed setup instructions in:
 
 ## 🌐 API Endpoints Overview
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/signup` | Register new user account |
-| `POST` | `/api/auth/login` | Login, receive access + refresh tokens |
-| `POST` | `/api/auth/refresh` | Rotate refresh token |
-| `GET` | `/api/auth/me` | Get authenticated user profile |
-| `POST` | `/api/upload` | Upload room image (max 5MB) |
-| `POST` | `/api/analyze/room` | Register room scan, trigger analysis |
-| `GET` | `/api/analyze/rooms` | List user's scanned rooms |
-| `GET` | `/api/analyze/room/{id}/result` | Fetch spatial analysis results |
-| `POST` | `/api/optimize` | Trigger Genetic Algorithm layout optimization |
-| `GET` | `/api/optimize/{job_id}` | Poll optimization job status |
-| `POST` | `/api/redesign` | Trigger AI generative redesign |
-| `GET` | `/api/redesign/{job_id}` | Poll redesign job and fetch renders |
-| `POST` | `/api/scoring/recalculate` | Recalculate scores for a custom layout |
-| `GET` | `/api/retrieval/inspirations` | Fetch matched style inspiration catalog |
-| `GET` | `/api/compare` | Compare spatial metrics between two rooms |
+| Method | Endpoint                        | Description                                   |
+| ------ | ------------------------------- | --------------------------------------------- |
+| `POST` | `/api/auth/signup`              | Register new user account                     |
+| `POST` | `/api/auth/login`               | Login, receive access + refresh tokens        |
+| `POST` | `/api/auth/refresh`             | Rotate refresh token                          |
+| `GET`  | `/api/auth/me`                  | Get authenticated user profile                |
+| `POST` | `/api/upload`                   | Upload room image (max 5MB)                   |
+| `POST` | `/api/analyze/room`             | Register room scan, trigger analysis          |
+| `GET`  | `/api/analyze/rooms`            | List user's scanned rooms                     |
+| `GET`  | `/api/analyze/room/{id}/result` | Fetch spatial analysis results                |
+| `POST` | `/api/optimize`                 | Trigger Genetic Algorithm layout optimization |
+| `GET`  | `/api/optimize/{job_id}`        | Poll optimization job status                  |
+| `POST` | `/api/redesign`                 | Trigger AI generative redesign                |
+| `GET`  | `/api/redesign/{job_id}`        | Poll redesign job and fetch renders           |
+| `POST` | `/api/scoring/recalculate`      | Recalculate scores for a custom layout        |
+| `GET`  | `/api/retrieval/inspirations`   | Fetch matched style inspiration catalog       |
+| `GET`  | `/api/compare`                  | Compare spatial metrics between two rooms     |
 
 ---
 
@@ -202,6 +206,7 @@ python -m unittest app/tests/test_ai_engines.py
 ```
 
 **Test coverage:**
+
 - IoU bounding box intersection calculations
 - Genetic Algorithm layout convergence and fitness
 - Explainable scoring engine (clutter / symmetry / accessibility)
@@ -214,6 +219,7 @@ python -m unittest app/tests/test_ai_engines.py
 ## 🚢 Deployment
 
 ### Render.com (One-click Blueprint)
+
 ```bash
 # From the backend directory
 # Push render.yaml to your connected GitHub repo
@@ -221,6 +227,7 @@ python -m unittest app/tests/test_ai_engines.py
 ```
 
 ### Production Docker Compose
+
 ```bash
 cd backend
 docker-compose -f docker-compose.prod.yml up --build
@@ -240,6 +247,7 @@ docker-compose -f docker-compose.prod.yml up --build
 ## 📁 Environment Variables
 
 ### Backend (`.env`)
+
 ```env
 ENV=development
 SECRET_KEY=your_secret_key_here
@@ -260,6 +268,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 ### Frontend (`.env.local`)
+
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
