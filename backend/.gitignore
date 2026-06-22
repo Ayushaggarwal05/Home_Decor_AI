@@ -1,0 +1,108 @@
+# ─────────────────────────────────────────────
+# Aura AI Backend — Python / FastAPI .gitignore
+# ─────────────────────────────────────────────
+
+# ── Python bytecode & caches ─────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ──────────────────────
+venv/
+.venv/
+env/
+.env_dir/
+ENV/
+env.bak/
+venv.bak/
+
+# ── Distribution / packaging ─────────────────
+build/
+dist/
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+wheels/
+pip-wheel-metadata/
+
+# ── Testing & coverage ────────────────────────
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.coveragerc
+nosetests.xml
+junit.xml
+
+# ── Type checking ────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# ── Environment / Secrets ────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ── SQLite / local test databases ────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Alembic auto-generated (keep migrations) ─
+# (migrations/ folder is intentionally tracked)
+
+# ── Celery ───────────────────────────────────
+celerybeat-schedule
+celerybeat.pid
+
+# ── Uploaded / generated media ───────────────
+static/uploads/
+static/renders/
+media/
+uploads/
+
+# ── ML model weights & checkpoints ───────────
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+*.pkl
+*.pickle
+models/weights/
+checkpoints/
+
+# ── Jupyter / IPython ────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── OS artifacts ─────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────
+*.log
+logs/
+
+# ── Docker (local override only) ─────────────
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ── IDE ──────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~

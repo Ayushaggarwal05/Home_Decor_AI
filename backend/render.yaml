@@ -1,0 +1,66 @@
+services:
+  - type: web
+    name: aura-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: aura-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: aura-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: aura-db
+          property: database
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aura-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: aura-redis
+          property: connectionString
+
+  - type: worker
+    name: aura-celery-default-worker
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A app.tasks.analysis_tasks.celery_app worker -Q default --loglevel=info --concurrency=4
+    envVars:
+      - key: ENV
+        value: production
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: aura-api
+          property: envVar:SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aura-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: aura-redis
+          property: connectionString
+
+  - type: redis
+    name: aura-redis
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: aura-db
+    plan: free
