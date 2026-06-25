@@ -30,7 +30,7 @@ export default function ComparePage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border pb-4 gap-4">
           <div className="flex items-center space-x-3">
             <Link 
-              href="/dashboard" 
+              href="/studio" 
               className="p-2 border border-border bg-card hover:bg-muted/40 text-foreground rounded-xl transition-colors cursor-pointer"
             >
               <ArrowLeft className="h-4 w-4" />

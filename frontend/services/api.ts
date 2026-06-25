@@ -89,6 +89,11 @@ apiClient.interceptors.response.use(
 
     // ── 401: Attempt silent refresh ──────────────────────────────────────
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't auto-redirect if we are on the login or signup page requests
+      if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/signup')) {
+        return Promise.reject(buildApiError(error));
+      }
+
       const refreshToken = tokenStorage.getRefreshToken();
 
       if (refreshToken) {

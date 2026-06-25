@@ -47,7 +47,7 @@ export default function Navbar() {
       case 'upload': return 'Upload room blueprints or images to trigger neural layout mapping';
       case 'compare': return 'Side-by-side delta checks on layout optimization variables';
       case 'settings': return 'Configure spatial analytics and environment configurations';
-      default: return 'Spatial Interior Intelligence Dashboard';
+      default: return 'Spatial Interior Intelligence Studio';
     }
   };
 

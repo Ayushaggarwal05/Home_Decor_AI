@@ -16,7 +16,7 @@ const PROTECTED_ROUTES = [
 // Public routes — always accessible
 const PUBLIC_ROUTES = ['/', '/login', '/signup'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if this is a protected route

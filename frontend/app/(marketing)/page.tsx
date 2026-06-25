@@ -30,7 +30,7 @@ export default function MarketingLandingPage() {
 
         <div>
           <Link 
-            href="/dashboard" 
+            href="/studio" 
             className="px-4 py-2 text-xs font-bold bg-white text-black hover:bg-slate-200 rounded-xl transition-all shadow-md cursor-pointer"
           >
             Launch Console
@@ -62,7 +62,7 @@ export default function MarketingLandingPage() {
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Link>
           <Link
-            href="/dashboard"
+            href="/studio"
             className="w-full sm:w-auto px-6 py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold rounded-2xl flex items-center justify-center transition-all cursor-pointer"
           >
             Interactive Sandbox

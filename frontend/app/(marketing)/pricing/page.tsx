@@ -11,7 +11,7 @@ const TIERS = [
     description: 'Explore the basics of spatial intelligence and bounding box overlays.',
     features: ['3 Room Uploads per month', 'Standard Occupancy Grid check', '2 Design styles', '720p Redesign drafts'],
     cta: 'Get Started',
-    href: '/dashboard',
+    href: '/studio',
     highlighted: false
   },
   {
@@ -21,7 +21,7 @@ const TIERS = [
     description: 'For interior designers and freelancers running constant client audits.',
     features: ['Unlimited uploads', 'Full Heatmap & Symmetry diagnostics', 'Access all 8+ Design styles', 'High-res 4K renders', 'Before/After Comparison sliders', 'Exportable raw JSON reports'],
     cta: 'Start Pro Trial',
-    href: '/dashboard',
+    href: '/studio',
     highlighted: true
   },
   {

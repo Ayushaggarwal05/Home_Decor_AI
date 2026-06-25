@@ -20,7 +20,7 @@ import { useAuthStore } from '@/store/authStore';
 
 // Setup routing map for links
 const navigationItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Studio', href: '/studio', icon: LayoutDashboard },
   { name: 'Upload Room', href: '/upload', icon: UploadCloud },
   { name: 'Research AI', href: '/research', icon: Compass },
   { name: 'Smart Redesign', href: '/redesign', icon: Sparkles },

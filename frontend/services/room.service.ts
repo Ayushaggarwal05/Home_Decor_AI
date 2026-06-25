@@ -110,13 +110,18 @@ export const roomService = {
    */
   async getAnalysisResult(roomId: string): Promise<ReturnType<typeof mapBackendAnalysis> | null> {
     try {
-      const response = await apiClient.get<BackendAnalysis>(
+      const response = await apiClient.get<BackendAnalysis | { detail: string }>(
         `/analyze/room/${roomId}/result`
       );
-      return mapBackendAnalysis(response.data);
+      
+      if (response.status === 202 || (response.data && 'detail' in response.data)) {
+        return null;
+      }
+      
+      return mapBackendAnalysis(response.data as BackendAnalysis);
     } catch (err: unknown) {
-      // 202 = still processing → return null so polling continues
-      if ((err as { status?: number })?.status === 202) return null;
+      const status = (err as { status?: number })?.status || (err as { response?: { status: number } })?.response?.status;
+      if (status === 202) return null;
       throw err;
     }
   },

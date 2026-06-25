@@ -60,7 +60,7 @@ export function useRoomPolling({
   if (analysis && roomId) {
     updateRoomAnalysis(roomId, analysis);
     if (!alreadyHasAnalysis) {
-      toast.success('Spatial analysis complete! Dashboard updated.');
+      toast.success('Spatial analysis complete! Studio updated.');
     }
   }
 

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRoomStore } from '@/store/roomStore';
+import { useRoomPolling } from '@/hooks/useRoomPolling';
 import DashboardShell from '@/components/layout/DashboardShell';
 import PageContainer from '@/components/layout/PageContainer';
 import MetricGauge from '@/components/scoring/MetricGauge';
@@ -26,7 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function ResearchDashboardPage() {
+export default function ResearchStudioPage() {
   const { 
     rooms, 
     activeRoomId, 
@@ -36,6 +37,33 @@ export default function ResearchDashboardPage() {
 
   // Retrieve active room or fallback to first
   const activeRoom = rooms.find(r => r.id === activeRoomId) || rooms[0];
+
+  // Poll for spatial analysis updates from Redis/Celery backend
+  const { isPolling } = useRoomPolling({
+    roomId: activeRoom?.id || null,
+    enabled: !!activeRoom,
+  });
+
+  if (isPolling) {
+    return (
+      <DashboardShell>
+        <PageContainer>
+          <div className="glass-panel border border-white/5 rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-6 bg-slate-950/40 min-h-[400px]">
+            <div className="relative flex items-center justify-center">
+              <div className="h-16 w-16 rounded-full border-t-2 border-cyan-400 border-r-2 border-r-transparent animate-spin" />
+              <Compass className="h-6 w-6 text-cyan-400 absolute animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-base font-bold text-foreground">Computing Spatial Analytics</h4>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                Our neural engine is analyzing spatial coordinates, tracing symmetry axes, and generating occupancy grids. This should take just a moment...
+              </p>
+            </div>
+          </div>
+        </PageContainer>
+      </DashboardShell>
+    );
+  }
 
   if (!activeRoom || !activeRoom.analysis) {
     return (
@@ -73,7 +101,7 @@ export default function ResearchDashboardPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border pb-4 gap-4">
             <div className="flex items-center space-x-3">
               <Link 
-                href="/dashboard" 
+                href="/studio" 
                 className="p-2 border border-border bg-card hover:bg-muted/40 text-foreground rounded-xl transition-colors cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -82,7 +110,7 @@ export default function ResearchDashboardPage() {
                 <div className="flex items-center space-x-2">
                   <h3 className="text-base font-bold text-slate-100">{activeRoom.name}</h3>
                   <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[9px] font-bold text-cyan-400 uppercase">
-                    Research Dashboard
+                    Research Studio
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">

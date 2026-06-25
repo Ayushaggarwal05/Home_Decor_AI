@@ -37,6 +37,7 @@ class Settings(BaseSettings):
 
     # Redis connection configurations
     REDIS_URL: str = "redis://redis:6379/0"
+    CELERY_ALWAYS_EAGER: bool = False
 
     # Storage integrations
     CLOUDINARY_CLOUD_NAME: str = "aura_spatial_cloud"
