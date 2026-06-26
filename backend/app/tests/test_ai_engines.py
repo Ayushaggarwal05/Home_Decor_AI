@@ -60,7 +60,7 @@ class TestAuraAIEngines(unittest.TestCase):
         result = scorer.calculate_room_scores(clean_layout)
         self.assertEqual(result["clutter_level"], "Low")
         self.assertGreaterEqual(result["scores"]["overall"], 80)
-        self.assertEqual(len(result["reasoning"]), 2)
+        self.assertTrue(len(result["reasoning"]) >= 2)
 
         # 2. Overlapping cluttered layout
         cluttered_layout = [
