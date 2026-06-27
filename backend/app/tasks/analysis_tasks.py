@@ -70,11 +70,11 @@ def run_spatial_analysis_task(self, room_id: int) -> int:
 
         # 2. Occupancy grid generation
         mapper = SpaceMapperInterface()
-        grid = mapper.generate_occupancy_matrix([], (room.length, room.width))
+        grid = mapper.generate_occupancy_matrix(room.furniture, (room.length, room.width))
 
         # 3. Spatial scores
         scorer = ScoringModelInterface()
-        scores = scorer.calculate_scores([])
+        scores = scorer.calculate_scores(room.furniture)
 
         # Create or update room analysis log
         analysis = db.query(Analysis).filter(Analysis.room_id == room.id).first()

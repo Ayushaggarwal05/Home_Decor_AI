@@ -1,20 +1,37 @@
 import random
 import copy
-from typing import List, Dict, Any, Tuple
-from app.utils.geometry_utils import compute_bounding_box_intersection_ratio
+import math
+import logging
+from typing import List, Dict, Any, Tuple, Optional
+from app.ai.scoring.scorer import ExplainableScoringEngine
+
+logger = logging.getLogger(__name__)
 
 class LayoutConstraintSolver:
-    """Genetic Algorithm Optimization engine for resolving spatial furniture arrangements."""
+    """
+    NSGA-II Multi-Objective layout optimization engine for room furniture arrangement.
+    Optimizes coordinate boundaries, visual symmetry, window light obstruction,
+    and semantic groupings with elitism and adaptive mutations.
+    """
 
     def __init__(
         self, 
         population_size: int = 40, 
         generations: int = 60, 
-        mutation_rate: float = 0.15
+        mutation_rate: float = 0.20,
+        crossover_rate: float = 0.75,
+        seed: Optional[int] = None
     ):
         self.population_size = population_size
         self.generations = generations
         self.mutation_rate = mutation_rate
+        self.crossover_rate = crossover_rate
+        
+        self.scorer = ExplainableScoringEngine()
+        self._score_cache = {}
+        
+        if seed is not None:
+            random.seed(seed)
 
     def optimize_layout(
         self, 
@@ -23,175 +40,692 @@ class LayoutConstraintSolver:
         room_width: float = 12.0
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
         """
-        Executes Genetic Algorithm to optimize furniture coordinates.
+        Executes NSGA-II Genetic Algorithm to optimize furniture coordinates and orientation.
+        
         Returns:
             Tuple: (optimized_furniture_list, list_of_explainable_changes)
         """
         if not original_furniture:
+            logger.info("Optimization aborted: No furniture items specified.")
             return [], []
 
-        # 1. Initialize population
-        population = self._initialize_population(original_furniture)
+        # 1. Initialize parent population
+        parents_layout = self._initialize_population(original_furniture)
+        parents_wrapper = [{"layout": layout} for layout in parents_layout]
         
-        # 2. GA Loop
-        best_individual = population[0]
-        best_fitness = -999999.0
-        
+        # 2. GA Optimization loop
         for gen in range(self.generations):
-            # Calculate fitness for all individuals
-            fitness_scores = [self._calculate_fitness(ind, room_length, room_width) for ind in population]
+            # Evaluate parent objectives
+            self._evaluate_population(parents_wrapper)
             
-            # Track best
-            for i, score in enumerate(fitness_scores):
-                if score > best_fitness:
-                    best_fitness = score
-                    best_individual = copy.deepcopy(population[i])
-
-            # Selection (Tournament selection)
-            selected = self._select_parents(population, fitness_scores)
+            # Generate offspring
+            children_wrapper = self._generate_next_generation(parents_wrapper, gen)
             
-            # Crossover & Mutation to create next generation
-            next_generation = []
-            while len(next_generation) < self.population_size:
-                parent1 = random.choice(selected)
-                parent2 = random.choice(selected)
-                child = self._crossover(parent1, parent2)
-                self._mutate(child)
-                next_generation.append(child)
+            # Evaluate offspring objectives
+            self._evaluate_population(children_wrapper)
+            
+            # Merge parents and children (size 2N)
+            merged_wrapper = parents_wrapper + children_wrapper
+            
+            # Run non-dominated sort and crowding distance assignment on merged population
+            merged_ranks = [0] * len(merged_wrapper)
+            merged_cd = [0.0] * len(merged_wrapper)
+            
+            merged_fronts = self._fast_non_dominated_sort(merged_wrapper)
+            for rank_idx, front in enumerate(merged_fronts):
+                for idx in front:
+                    merged_ranks[idx] = rank_idx
                 
-            population = next_generation
+                front_cd = self._calculate_crowding_distances(front, [ind["objectives"] for ind in merged_wrapper])
+                for idx, cd in front_cd.items():
+                    merged_cd[idx] = cd
+            
+            # Select the best N individuals for the next generation
+            next_parents = []
+            for front in merged_fronts:
+                if len(next_parents) + len(front) <= self.population_size:
+                    next_parents.extend([merged_wrapper[idx] for idx in front])
+                else:
+                    # Sort remaining front elements by crowding distance in descending order
+                    sorted_front = sorted(front, key=lambda idx: merged_cd[idx], reverse=True)
+                    space_left = self.population_size - len(next_parents)
+                    next_parents.extend([merged_wrapper[idx] for idx in sorted_front[:space_left]])
+                    break
+                    
+            parents_wrapper = next_parents
 
-        # 3. Formulate explainable changes suggestions
-        suggestions = self._generate_explainable_changes(original_furniture, best_individual)
+        # 3. Select final best layout from the top Pareto front (maximizes overall weighted score)
+        self._evaluate_population(parents_wrapper)
+        final_fronts = self._fast_non_dominated_sort(parents_wrapper)
         
-        return best_individual, suggestions
+        best_layout = None
+        best_overall = -1.0
+        
+        for idx in final_fronts[0]:
+            layout = parents_wrapper[idx]["layout"]
+            res = self._evaluate_individual(layout)
+            overall = res["scores"]["overall"]
+            if overall > best_overall:
+                best_overall = overall
+                best_layout = layout
+                
+        if not best_layout:
+            best_layout = parents_wrapper[0]["layout"]
+            
+        # Clean layout representations before returning
+        final_layout = []
+        for item in best_layout:
+            clean_item = {
+                "label": item["label"],
+                "rotation": item.get("rotation", 0),
+                "boundingBox": {
+                    "x": round(item["boundingBox"]["x"], 2),
+                    "y": round(item["boundingBox"]["y"], 2),
+                    "width": round(item["boundingBox"]["width"], 2),
+                    "height": round(item["boundingBox"]["height"], 2)
+                }
+            }
+            final_layout.append(clean_item)
+
+        # 4. Generate recommendations comparing optimized layout coordinates to original
+        suggestions = self._generate_explainable_changes(original_furniture, final_layout)
+        
+        return final_layout, suggestions
 
     def _initialize_population(self, original: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
-        """Generates random starting layouts with slight coordinate offsets."""
+        """Generates starting layouts with wall anchoring and rotation initialization."""
         population = []
-        for _ in range(self.population_size):
+        
+        # Always seed layout 0 with the original layout unchanged
+        orig_seed = copy.deepcopy(original)
+        for item in orig_seed:
+            if "original_width" not in item:
+                item["original_width"] = item["boundingBox"]["width"]
+                item["original_height"] = item["boundingBox"]["height"]
+            if "rotation" not in item:
+                item["rotation"] = 0
+            self._update_item_bounding_box(item)
+        population.append(orig_seed)
+        
+        for _ in range(self.population_size - 1):
             individual = []
             for item in original:
                 mutated_item = copy.deepcopy(item)
-                box = mutated_item["boundingBox"]
-                # Add random offset (-15% to +15% coordinate sliding)
-                box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + random.uniform(-15, 15)))
-                box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + random.uniform(-15, 15)))
+                if "original_width" not in mutated_item:
+                    mutated_item["original_width"] = mutated_item["boundingBox"]["width"]
+                    mutated_item["original_height"] = mutated_item["boundingBox"]["height"]
+                
+                # Randomize starting rotations (0, 90, 180, 270)
+                mutated_item["rotation"] = random.choice([0, 90, 180, 270])
+                
+                orig_w = mutated_item["original_width"]
+                orig_h = mutated_item["original_height"]
+                rot = mutated_item["rotation"]
+                w = orig_h if rot in [90, 270] else orig_w
+                h = orig_w if rot in [90, 270] else orig_h
+                
+                # Position randomly within bounds
+                mutated_item["boundingBox"]["x"] = random.uniform(0.0, 100.0 - w)
+                mutated_item["boundingBox"]["y"] = random.uniform(0.0, 100.0 - h)
+                
+                # Snap to wall if structural/anchored item
+                label_lower = mutated_item.get("label", "").lower()
+                if label_lower in ["bed", "bookshelf", "sideboard", "desk"]:
+                    self._snap_to_wall(mutated_item, w, h)
+                    
+                self._update_item_bounding_box(mutated_item)
                 individual.append(mutated_item)
+                
             population.append(individual)
+            
         return population
 
-    def _calculate_fitness(self, layout: List[Dict[str, Any]], length: float, width: float) -> float:
-        """
-        Fitness evaluator representing layout scoring variables.
-        High scores = better layout. Deducts points for overlap collisions or blocking pathways.
-        """
-        score = 100.0
+    def _evaluate_population(self, population_wrapper: List[Dict[str, Any]]) -> None:
+        """Evaluates all individuals in the population and stores objective vectors."""
+        for ind in population_wrapper:
+            if "objectives" not in ind:
+                res = self._evaluate_individual(ind["layout"])
+                scores = res["scores"]
+                # 6 objectives to maximize
+                ind["objectives"] = (
+                    float(scores["accessibility"]),
+                    float(scores["flow"]),
+                    float(scores["symmetry"]),
+                    float(scores["clutter"]),
+                    float(scores["semantic"]),
+                    float(scores["lighting"])
+                )
 
-        # Penalty 1: Bounding Box overlap checks (Collision checking)
-        for i in range(len(layout)):
-            for j in range(i + 1, len(layout)):
-                boxA = layout[i]["boundingBox"]
-                boxB = layout[j]["boundingBox"]
-                iou = compute_bounding_box_intersection_ratio(boxA, boxB)
-                if iou > 0:
-                    # Heavy penalty for overlapping furniture footprints
-                    score -= iou * 65.0
-
-        # Penalty 2: Doorway/window blockage checks
-        for item in layout:
-            box = item["boundingBox"]
-            label = item.get("label", "").lower()
+    def _evaluate_individual(self, individual: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Evaluates an individual using ExplainableScoringEngine with cache layer mapping."""
+        state = tuple(sorted(
+            (
+                item["label"], 
+                round(item["boundingBox"]["x"], 2), 
+                round(item["boundingBox"]["y"], 2),
+                round(item["boundingBox"]["width"], 2), 
+                round(item["boundingBox"]["height"], 2),
+                item.get("rotation", 0)
+            ) 
+            for item in individual
+        ))
+        
+        if state in self._score_cache:
+            return self._score_cache[state]
             
-            # If item is placed directly in doorway entryways (lower center coordinates)
-            if label not in ["door", "window"]:
-                # Check proximity to edges (boundary paths clearance)
-                if box["y"] + box["height"] > 95.0 and (40.0 < box["x"] < 60.0): # Mock doorway zone
-                    score -= 40.0 # Heavy pathway blockage penalty
+        formatted = []
+        for item in individual:
+            formatted.append({
+                "label": item["label"],
+                "rotation": item.get("rotation", 0),
+                "boundingBox": {
+                    "x": item["boundingBox"]["x"],
+                    "y": item["boundingBox"]["y"],
+                    "width": item["boundingBox"]["width"],
+                    "height": item["boundingBox"]["height"]
+                }
+            })
+            
+        res = self.scorer.calculate_room_scores(formatted)
+        self._score_cache[state] = res
+        return res
 
-        # Reward 1: Visual weight symmetry alignments
-        # Align center of coordinates with visual grid center
-        x_centers = [item["boundingBox"]["x"] + (item["boundingBox"]["width"] / 2) for item in layout]
-        if x_centers:
-            avg_x_center = sum(x_centers) / len(x_centers)
-            symmetry_offset = abs(50.0 - avg_x_center)
-            score -= symmetry_offset * 0.8 # Mild penalty for asymmetrical weight
+    def _fast_non_dominated_sort(self, population_wrapper: List[Dict[str, Any]]) -> List[List[int]]:
+        """Organizes individuals into fronts of non-dominated ranks (NSGA-II)."""
+        n = len(population_wrapper)
+        S = [[] for _ in range(n)]
+        np_count = [0] * n
+        fronts = [[]]
+        
+        for p in range(n):
+            for q in range(n):
+                # Check if objective p dominates objective q (Maximization)
+                p_dom_q = True
+                q_dom_p = True
+                p_better = False
+                q_better = False
+                
+                for obj in range(6):
+                    val_p = population_wrapper[p]["objectives"][obj]
+                    val_q = population_wrapper[q]["objectives"][obj]
+                    if val_p < val_q:
+                        p_dom_q = False
+                    if val_p > val_q:
+                        p_better = True
+                        
+                    if val_q < val_p:
+                        q_dom_p = False
+                    if val_q > val_p:
+                        q_better = True
+                        
+                p_dominates = p_dom_q and p_better
+                q_dominates = q_dom_p and q_better
+                
+                if p_dominates:
+                    S[p].append(q)
+                elif q_dominates:
+                    np_count[p] += 1
+            
+            if np_count[p] == 0:
+                fronts[0].append(p)
+                
+        i = 0
+        while len(fronts[i]) > 0:
+            next_front = []
+            for p in fronts[i]:
+                for q in S[p]:
+                    np_count[q] -= 1
+                    if np_count[q] == 0:
+                        next_front.append(q)
+            i += 1
+            fronts.append(next_front)
+            
+        if len(fronts[-1]) == 0:
+            fronts.pop()
+            
+        return fronts
 
-        return score
+    def _calculate_crowding_distances(
+        self, 
+        front_indices: List[int], 
+        objective_values: List[Tuple[float, ...]]
+    ) -> Dict[int, float]:
+        """Calculates crowding distances within a single Pareto front."""
+        distances = {idx: 0.0 for idx in front_indices}
+        num_individuals = len(front_indices)
+        if num_individuals <= 2:
+            for idx in front_indices:
+                distances[idx] = float('inf')
+            return distances
+            
+        for obj in range(6):
+            # Sort indices based on current objective parameter
+            sorted_indices = sorted(front_indices, key=lambda idx: objective_values[idx][obj])
+            
+            # Endpoints get infinite crowding distances
+            distances[sorted_indices[0]] = float('inf')
+            distances[sorted_indices[-1]] = float('inf')
+            
+            min_val = objective_values[sorted_indices[0]][obj]
+            max_val = objective_values[sorted_indices[-1]][obj]
+            val_range = max_val - min_val
+            
+            if val_range == 0.0:
+                continue
+                
+            for k in range(1, num_individuals - 1):
+                idx = sorted_indices[k]
+                prev_idx = sorted_indices[k-1]
+                next_idx = sorted_indices[k+1]
+                distances[idx] += (objective_values[next_idx][obj] - objective_values[prev_idx][obj]) / val_range
+                
+        return distances
 
-    def _select_parents(self, population: List[List[Dict[str, Any]]], scores: List[float]) -> List[List[Dict[str, Any]]]:
-        """Tournament selection of fittest parents."""
+    def _select_parents(
+        self, 
+        population_wrapper: List[Dict[str, Any]], 
+        ranks: List[int], 
+        crowding_distances: List[float]
+    ) -> List[Dict[str, Any]]:
+        """Tournament selection favoring individuals with lower rank and higher crowding distance."""
         selected = []
-        for _ in range(len(population) // 2):
-            # Select 3 random individuals and compare
-            idx1, idx2, idx3 = random.sample(range(len(population)), 3)
-            best_idx = idx1
-            if scores[idx2] > scores[best_idx]:
+        n = len(population_wrapper)
+        for _ in range(n):
+            idx1, idx2 = random.sample(range(n), 2)
+            if ranks[idx1] < ranks[idx2]:
+                best_idx = idx1
+            elif ranks[idx2] < ranks[idx1]:
                 best_idx = idx2
-            if scores[idx3] > scores[best_idx]:
-                best_idx = idx3
-            selected.append(population[best_idx])
+            else:
+                best_idx = idx1 if crowding_distances[idx1] >= crowding_distances[idx2] else idx2
+            selected.append(population_wrapper[best_idx])
         return selected
 
-    def _crossover(self, parent1: List[Dict[str, Any]], parent2: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Performs crossover by swapping coordinate parameters of elements."""
-        child = []
-        for i in range(len(parent1)):
-            if random.random() > 0.5:
-                child.append(copy.deepcopy(parent1[i]))
+    def _generate_next_generation(
+        self, 
+        population_wrapper: List[Dict[str, Any]], 
+        generation: int
+    ) -> List[Dict[str, Any]]:
+        """Generates offspring layouts using tournament selection, functional crossovers, and adaptive mutations."""
+        # 1. Compute ranks and crowding distances for the parents
+        ranks = [0] * len(population_wrapper)
+        crowding_distances = [0.0] * len(population_wrapper)
+        
+        fronts = self._fast_non_dominated_sort(population_wrapper)
+        for rank_idx, front in enumerate(fronts):
+            for idx in front:
+                ranks[idx] = rank_idx
+            
+            front_cd = self._calculate_crowding_distances(front, [ind["objectives"] for ind in population_wrapper])
+            for idx, cd in front_cd.items():
+                crowding_distances[idx] = cd
+                
+        # 2. Select parents via tournaments
+        selected = self._select_parents(population_wrapper, ranks, crowding_distances)
+        
+        # 3. Create children through crossovers and mutations
+        children_wrapper = []
+        n = len(population_wrapper)
+        
+        while len(children_wrapper) < n:
+            parent1 = random.choice(selected)
+            parent2 = random.choice(selected)
+            
+            # Crossover
+            child_layout = self._perform_crossover(parent1["layout"], parent2["layout"])
+            
+            # Mutation
+            self._apply_mutation(child_layout, generation)
+            
+            children_wrapper.append({
+                "layout": child_layout
+            })
+            
+        return children_wrapper
+
+    def _perform_crossover(
+        self, 
+        parent1: List[Dict[str, Any]], 
+        parent2: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Performs crossover by swapping cohesive functional room layout zones between parents."""
+        if random.random() > self.crossover_rate:
+            return copy.deepcopy(parent1)
+            
+        child = [None] * len(parent1)
+        
+        # Define zoning structures
+        zones = {
+            "sleep": [],
+            "dining": [],
+            "work": [],
+            "lounge": [],
+            "other": []
+        }
+        
+        # Classify primary items
+        for idx, item in enumerate(parent1):
+            lbl = item.get("label", "").lower()
+            if lbl == "bed":
+                zones["sleep"].append(idx)
+            elif lbl == "dining table":
+                zones["dining"].append(idx)
+            elif lbl == "desk":
+                zones["work"].append(idx)
+            elif lbl in ["sofa", "coffee table"]:
+                zones["lounge"].append(idx)
             else:
-                child.append(copy.deepcopy(parent2[i]))
+                zones["other"].append(idx)
+                
+        # Group dependent proximity items to classify whole spatial layout zones
+        for idx, item in enumerate(parent1):
+            lbl = item.get("label", "").lower()
+            if lbl in ["door", "window", "bed", "dining table", "desk", "sofa", "coffee table"]:
+                continue
+                
+            box = item["boundingBox"]
+            cx = box["x"] + box["width"] / 2.0
+            cy = box["y"] + box["height"] / 2.0
+            
+            best_zone = "other"
+            min_dist = float('inf')
+            
+            for zone_name in ["sleep", "dining", "work", "lounge"]:
+                for z_idx in zones[zone_name]:
+                    z_box = parent1[z_idx]["boundingBox"]
+                    zx = z_box["x"] + z_box["width"] / 2.0
+                    zy = z_box["y"] + z_box["height"] / 2.0
+                    dist = math.hypot(cx - zx, cy - zy)
+                    if dist < min_dist and dist < 25.0:
+                        min_dist = dist
+                        best_zone = zone_name
+            
+            if best_zone != "other":
+                zones[best_zone].append(idx)
+                if idx in zones["other"]:
+                    zones["other"].remove(idx)
+
+        # Inherit zones as units from random parents
+        for zone_name, indices in zones.items():
+            inherit_parent = parent1 if random.random() > 0.5 else parent2
+            for idx in indices:
+                label = parent1[idx]["label"]
+                if idx < len(inherit_parent) and inherit_parent[idx]["label"] == label:
+                    child[idx] = copy.deepcopy(inherit_parent[idx])
+                else:
+                    match = next((item for item in inherit_parent if item["label"] == label), None)
+                    if match:
+                        child[idx] = copy.deepcopy(match)
+                    else:
+                        child[idx] = copy.deepcopy(parent1[idx])
+                        
+        # Fallback missing cells
+        for idx in range(len(child)):
+            if child[idx] is None:
+                child[idx] = copy.deepcopy(parent1[idx])
+                
         return child
 
-    def _mutate(self, individual: List[Dict[str, Any]]) -> None:
-        """Mutates coordinates of items occasionally."""
-        for item in individual:
-            if random.random() < self.mutation_rate:
-                box = item["boundingBox"]
-                # Slight coordinate adjustment (-5% to +5% sliding)
-                box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + random.uniform(-5, 5)))
-                box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + random.uniform(-5, 5)))
+    def _apply_mutation(self, individual: List[Dict[str, Any]], generation: int) -> None:
+        """Applies adaptive, constraint-aware, and semantic mutation strategies."""
+        progress = generation / self.generations
+        mutation_range = max(1.0, 15.0 * (1.0 - progress))  # Exploratory range shrinks over time
+        adaptive_rate = self.mutation_rate * (1.0 - 0.5 * progress)  # Decay mutation rate slightly
+        
+        # 1. Gather scene coordinates
+        windows = [item for item in individual if item.get("label", "").lower() == "window"]
+        doors = [item for item in individual if item.get("label", "").lower() == "door"]
+        
+        for i, item in enumerate(individual):
+            label_lower = item.get("label", "").lower()
+            if label_lower in ["door", "window"]:
+                continue
+                
+            if random.random() >= adaptive_rate:
+                continue
+                
+            box = item["boundingBox"]
+            w = box["width"]
+            h = box["height"]
+            
+            # Determine mutation strategy
+            strategy = random.choice([
+                "slide", 
+                "rotate", 
+                "snap_wall", 
+                "semantic_align",
+                "avoid_doorway"
+            ])
+            
+            dx, dy = 0.0, 0.0
+            
+            if strategy == "slide":
+                # Standard random search slider
+                dx = random.uniform(-mutation_range, mutation_range)
+                dy = random.uniform(-mutation_range, mutation_range)
+                box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
+                box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
+                
+            elif strategy == "rotate":
+                # Rotate item
+                item["rotation"] = random.choice([0, 90, 180, 270])
+                self._update_item_bounding_box(item)
+                
+            elif strategy == "snap_wall":
+                if label_lower in ["bed", "bookshelf", "sideboard", "desk"]:
+                    self._snap_to_wall(item, w, h)
+                    
+            elif strategy == "semantic_align":
+                # Pull desk toward window for natural daylight
+                if label_lower == "desk" and windows:
+                    win = random.choice(windows)
+                    win_box = win["boundingBox"]
+                    win_cx = win_box["x"] + win_box["width"] / 2.0
+                    win_cy = win_box["y"] + win_box["height"] / 2.0
+                    cx = box["x"] + w / 2.0
+                    cy = box["y"] + h / 2.0
+                    dx = (win_cx - cx) * 0.25
+                    dy = (win_cy - cy) * 0.25
+                    box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
+                    box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
+                # Pull seating items closer together (conversation zone)
+                elif label_lower in ["sofa", "armchair", "chair"]:
+                    seat_centers = [
+                        (s["boundingBox"]["x"] + s["boundingBox"]["width"]/2.0, s["boundingBox"]["y"] + s["boundingBox"]["height"]/2.0)
+                        for idx, s in enumerate(individual)
+                        if s.get("label", "").lower() in ["sofa", "armchair", "chair"] and idx != i
+                    ]
+                    if seat_centers:
+                        avg_x = sum(pt[0] for pt in seat_centers) / len(seat_centers)
+                        avg_y = sum(pt[1] for pt in seat_centers) / len(seat_centers)
+                        cx = box["x"] + w / 2.0
+                        cy = box["y"] + h / 2.0
+                        dx = (avg_x - cx) * 0.2
+                        dy = (avg_y - cy) * 0.2
+                        box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
+                        
+            elif strategy == "avoid_doorway":
+                # Actively push furniture away from doorway paths
+                for door in doors:
+                    door_box = door["boundingBox"]
+                    door_cx = door_box["x"] + door_box["width"] / 2.0
+                    door_cy = door_box["y"] + door_box["height"] / 2.0
+                    cx = box["x"] + w / 2.0
+                    cy = box["y"] + h / 2.0
+                    dist = math.hypot(cx - door_cx, cy - door_cy)
+                    if dist < 25.0 and dist > 0:
+                        push_scale = 10.0
+                        dx = ((cx - door_cx) / dist) * push_scale
+                        dy = ((cy - door_cy) / dist) * push_scale
+                        box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
+            
+            self._update_item_bounding_box(item)
+            
+            # Preserve semantic group structures when moved
+            if dx != 0.0 or dy != 0.0:
+                self._preserve_furniture_relationships(individual, i, dx, dy)
+
+    def _update_item_bounding_box(self, item: Dict[str, Any]) -> None:
+        """Updates the bounding box dimensions based on rotation (0, 90, 180, 270)."""
+        rot = item.get("rotation", 0) % 360
+        if rot not in [0, 90, 180, 270]:
+            rot = min([0, 90, 180, 270], key=lambda x: abs(x - rot))
+        item["rotation"] = rot
+        
+        orig_w = item.get("original_width", item["boundingBox"]["width"])
+        orig_h = item.get("original_height", item["boundingBox"]["height"])
+        
+        # Swap width/height if rotated 90 or 270 degrees
+        if rot in [90, 270]:
+            item["boundingBox"]["width"] = orig_h
+            item["boundingBox"]["height"] = orig_w
+        else:
+            item["boundingBox"]["width"] = orig_w
+            item["boundingBox"]["height"] = orig_h
+            
+        # Enforce room boundary boundaries (0.0 to 100.0)
+        w = item["boundingBox"]["width"]
+        h = item["boundingBox"]["height"]
+        item["boundingBox"]["x"] = max(0.0, min(100.0 - w, item["boundingBox"]["x"]))
+        item["boundingBox"]["y"] = max(0.0, min(100.0 - h, item["boundingBox"]["y"]))
+
+    def _snap_to_wall(self, item: Dict[str, Any], w: float, h: float) -> None:
+        """Snaps an item to the nearest room wall boundary."""
+        box = item["boundingBox"]
+        dist_left = box["x"]
+        dist_right = 100.0 - w - box["x"]
+        dist_top = box["y"]
+        dist_bottom = 100.0 - h - box["y"]
+        
+        min_dist = min(dist_left, dist_right, dist_top, dist_bottom)
+        if min_dist == dist_left:
+            box["x"] = 0.0
+        elif min_dist == dist_right:
+            box["x"] = 100.0 - w
+        elif min_dist == dist_top:
+            box["y"] = 0.0
+        else:
+            box["y"] = 100.0 - h
+
+    def _preserve_furniture_relationships(
+        self, 
+        individual: List[Dict[str, Any]], 
+        moved_idx: int, 
+        dx: float, 
+        dy: float
+    ) -> None:
+        """Preserves distance relationships for semantic zones (bed/nightstands, tables/chairs)."""
+        primary = individual[moved_idx]
+        prim_label = primary.get("label", "").lower()
+        
+        if random.random() > 0.8:
+            return
+            
+        prim_box = primary["boundingBox"]
+        px = prim_box["x"] + prim_box["width"] / 2.0
+        py = prim_box["y"] + prim_box["height"] / 2.0
+        
+        if prim_label == "bed":
+            for idx, item in enumerate(individual):
+                if idx == moved_idx:
+                    continue
+                if item.get("label", "").lower() == "sideboard":
+                    box = item["boundingBox"]
+                    cx = box["x"] + box["width"] / 2.0
+                    cy = box["y"] + box["height"] / 2.0
+                    if math.hypot(px - cx, py - cy) < 25.0:
+                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
+                        self._update_item_bounding_box(item)
+                        
+        elif prim_label == "dining table":
+            for idx, item in enumerate(individual):
+                if idx == moved_idx:
+                    continue
+                if item.get("label", "").lower() == "chair":
+                    box = item["boundingBox"]
+                    cx = box["x"] + box["width"] / 2.0
+                    cy = box["y"] + box["height"] / 2.0
+                    if math.hypot(px - cx, py - cy) < 25.0:
+                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
+                        self._update_item_bounding_box(item)
+
+        elif prim_label == "sofa":
+            for idx, item in enumerate(individual):
+                if idx == moved_idx:
+                    continue
+                lbl = item.get("label", "").lower()
+                if lbl in ["sideboard", "coffee table"]:
+                    box = item["boundingBox"]
+                    cx = box["x"] + box["width"] / 2.0
+                    cy = box["y"] + box["height"] / 2.0
+                    if math.hypot(px - cx, py - cy) < 30.0:
+                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
+                        self._update_item_bounding_box(item)
 
     def _generate_explainable_changes(
         self, 
         original: List[Dict[str, Any]], 
         optimized: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
-        """Generates readable descriptions comparing layouts."""
+        """Generates clear, natural language explanations describing optimized shifts."""
         suggestions = []
+        
         for orig_item in original:
             opt_item = next((item for item in optimized if item["label"] == orig_item["label"]), None)
             if not opt_item:
                 continue
-
+                
             orig_box = orig_item["boundingBox"]
             opt_box = opt_item["boundingBox"]
             
             dx = opt_box["x"] - orig_box["x"]
             dy = opt_box["y"] - orig_box["y"]
             
+            orig_rot = orig_item.get("rotation", 0)
+            opt_rot = opt_item.get("rotation", 0)
+            
             label = orig_item["label"]
-
-            # If displacement exceeds threshold (e.g. 3% shift)
-            if abs(dx) > 3.0 or abs(dy) > 3.0:
+            changes = []
+            
+            if orig_rot != opt_rot:
+                changes.append(f"rotate by {opt_rot}°")
+                
+            if abs(dx) > 2.0 or abs(dy) > 2.0:
                 dir_x = "right" if dx > 0 else "left"
-                dir_y = "south" if dy > 0 else "north"
+                dir_y = "down" if dy > 0 else "up"
                 
-                desc = f"Move the {label} slightly "
-                if abs(dx) > 3.0 and abs(dy) > 3.0:
-                    desc += f"{dir_x} and {dir_y} to optimize pathway clearances."
-                elif abs(dx) > 3.0:
-                    desc += f"{dir_x} to clear visual lines."
+                if abs(dx) > 2.0 and abs(dy) > 2.0:
+                    changes.append(f"shift slightly {dir_x} and {dir_y}")
+                elif abs(dx) > 2.0:
+                    changes.append(f"shift slightly {dir_x}")
                 else:
-                    desc += f"{dir_y} to increase symmetry."
-                
+                    changes.append(f"shift slightly {dir_y}")
+            
+            if changes:
+                desc = f"Modify the {label} layout: " + ", and ".join(changes) + "."
+                label_lower = label.lower()
+                if label_lower in ["bed", "sideboard"]:
+                    desc += " This improves bedside nightstand accessibility and clearances."
+                elif label_lower in ["sofa", "coffee table"]:
+                    desc += " This aligns focal points and creates a comfortable lounge seating circle."
+                elif label_lower == "desk":
+                    desc += " This positions the work zone for optimal natural window daylight."
+                elif label_lower in ["dining table", "chair"]:
+                    desc += " This optimizes seating clearances around the dining zone."
+                else:
+                    desc += " This increases walkability and room circulation flow."
+                    
                 suggestions.append({
-                    "id": f"sug-{label.lower()}",
-                    "title": f"Optimize {label} Coordinate Location",
+                    "id": f"sug-{label_lower}-{random.randint(100, 999)}",
+                    "title": f"Optimize {label} Layout",
                     "description": desc
                 })
                 
-        # Fallback suggestion if no shifts occurred
         if not suggestions:
             suggestions.append({
                 "id": "sug-general",
