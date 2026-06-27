@@ -388,67 +388,42 @@ class LayoutConstraintSolver:
         parent1: List[Dict[str, Any]], 
         parent2: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Performs crossover by swapping cohesive functional room layout zones between parents."""
+        """
+        Performs crossover by swapping cohesive semantic subgraphs (connected components) 
+        of the relationship graph between parents to preserve groups.
+        """
         if random.random() > self.crossover_rate:
             return copy.deepcopy(parent1)
             
         child = [None] * len(parent1)
         
-        # Define zoning structures
-        zones = {
-            "sleep": [],
-            "dining": [],
-            "work": [],
-            "lounge": [],
-            "other": []
-        }
+        from app.ai.spatial.spatial_relationship_graph import SpatialRelationshipGraph
+        import networkx as nx
         
-        # Classify primary items
+        graph = SpatialRelationshipGraph(parent1)
+        
+        # Extract components of movable nodes
+        movable_nodes = [
+            node_id for node_id, attrs in graph.graph.nodes(data=True) 
+            if attrs.get("movable", True)
+        ]
+        
+        subgraph = graph.graph.subgraph(movable_nodes)
+        components = list(nx.connected_components(subgraph))
+        
+        # Map parent1 indices
+        id_to_idx = {}
         for idx, item in enumerate(parent1):
-            lbl = item.get("label", "").lower()
-            if lbl == "bed":
-                zones["sleep"].append(idx)
-            elif lbl == "dining table":
-                zones["dining"].append(idx)
-            elif lbl == "desk":
-                zones["work"].append(idx)
-            elif lbl in ["sofa", "coffee table"]:
-                zones["lounge"].append(idx)
-            else:
-                zones["other"].append(idx)
-                
-        # Group dependent proximity items to classify whole spatial layout zones
-        for idx, item in enumerate(parent1):
-            lbl = item.get("label", "").lower()
-            if lbl in ["door", "window", "bed", "dining table", "desk", "sofa", "coffee table"]:
-                continue
-                
-            box = item["boundingBox"]
-            cx = box["x"] + box["width"] / 2.0
-            cy = box["y"] + box["height"] / 2.0
+            node_id = item.get("id", f"{item['label']}_{idx}")
+            id_to_idx[node_id] = idx
             
-            best_zone = "other"
-            min_dist = float('inf')
-            
-            for zone_name in ["sleep", "dining", "work", "lounge"]:
-                for z_idx in zones[zone_name]:
-                    z_box = parent1[z_idx]["boundingBox"]
-                    zx = z_box["x"] + z_box["width"] / 2.0
-                    zy = z_box["y"] + z_box["height"] / 2.0
-                    dist = math.hypot(cx - zx, cy - zy)
-                    if dist < min_dist and dist < 25.0:
-                        min_dist = dist
-                        best_zone = zone_name
-            
-            if best_zone != "other":
-                zones[best_zone].append(idx)
-                if idx in zones["other"]:
-                    zones["other"].remove(idx)
-
-        # Inherit zones as units from random parents
-        for zone_name, indices in zones.items():
+        # Swap components
+        for comp in components:
             inherit_parent = parent1 if random.random() > 0.5 else parent2
-            for idx in indices:
+            for node_id in comp:
+                idx = id_to_idx.get(node_id)
+                if idx is None:
+                    continue
                 label = parent1[idx]["label"]
                 if idx < len(inherit_parent) and inherit_parent[idx]["label"] == label:
                     child[idx] = copy.deepcopy(inherit_parent[idx])
@@ -459,113 +434,157 @@ class LayoutConstraintSolver:
                     else:
                         child[idx] = copy.deepcopy(parent1[idx])
                         
-        # Fallback missing cells
-        for idx in range(len(child)):
+        # Fill non-movable items (doors, windows) and default fallbacks
+        for idx in range(len(parent1)):
             if child[idx] is None:
                 child[idx] = copy.deepcopy(parent1[idx])
                 
         return child
 
     def _apply_mutation(self, individual: List[Dict[str, Any]], generation: int) -> None:
-        """Applies adaptive, constraint-aware, and semantic mutation strategies."""
+        """Applies graph-aware, adaptive mutation operators using SpatialRelationshipGraph."""
         progress = generation / self.generations
-        mutation_range = max(1.0, 15.0 * (1.0 - progress))  # Exploratory range shrinks over time
-        adaptive_rate = self.mutation_rate * (1.0 - 0.5 * progress)  # Decay mutation rate slightly
+        mutation_range = max(1.0, 15.0 * (1.0 - progress))  # Exploratory range decays
+        adaptive_rate = self.mutation_rate * (1.0 - 0.5 * progress)
         
-        # 1. Gather scene coordinates
-        windows = [item for item in individual if item.get("label", "").lower() == "window"]
-        doors = [item for item in individual if item.get("label", "").lower() == "door"]
+        from app.ai.spatial.spatial_relationship_graph import SpatialRelationshipGraph
+        import networkx as nx
         
-        for i, item in enumerate(individual):
-            label_lower = item.get("label", "").lower()
-            if label_lower in ["door", "window"]:
-                continue
-                
-            if random.random() >= adaptive_rate:
-                continue
-                
-            box = item["boundingBox"]
-            w = box["width"]
-            h = box["height"]
+        # Build relationship graph of individual layout
+        graph = SpatialRelationshipGraph(individual)
+        
+        # Group components
+        movable_nodes = [n for n, attrs in graph.graph.nodes(data=True) if attrs.get("movable", True)]
+        subgraph = graph.graph.subgraph(movable_nodes)
+        components = list(nx.connected_components(subgraph))
+        
+        id_to_idx = {item.get("id", f"{item['label']}_{idx}"): idx for idx, item in enumerate(individual)}
+        
+        # Decide mutation strategies
+        strategy = random.choice([
+            "group_slide", 
+            "focal_align", 
+            "wall_snap", 
+            "conversational_balance",
+            "avoid_doorway"
+        ])
+        
+        if random.random() >= adaptive_rate:
+            return
             
-            # Determine mutation strategy
-            strategy = random.choice([
-                "slide", 
-                "rotate", 
-                "snap_wall", 
-                "semantic_align",
-                "avoid_doorway"
-            ])
-            
-            dx, dy = 0.0, 0.0
-            
-            if strategy == "slide":
-                # Standard random search slider
-                dx = random.uniform(-mutation_range, mutation_range)
-                dy = random.uniform(-mutation_range, mutation_range)
-                box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
-                box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
-                
-            elif strategy == "rotate":
-                # Rotate item
-                item["rotation"] = random.choice([0, 90, 180, 270])
-                self._update_item_bounding_box(item)
-                
-            elif strategy == "snap_wall":
-                if label_lower in ["bed", "bookshelf", "sideboard", "desk"]:
-                    self._snap_to_wall(item, w, h)
+        if strategy == "group_slide" and components:
+            # 1. Group-preserving mutation: slide whole connected component together
+            comp = random.choice(components)
+            dx = random.uniform(-mutation_range, mutation_range)
+            dy = random.uniform(-mutation_range, mutation_range)
+            for node_id in comp:
+                idx = id_to_idx.get(node_id)
+                if idx is not None:
+                    item = individual[idx]
+                    box = item["boundingBox"]
+                    box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
+                    box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
+                    self._update_item_bounding_box(item)
                     
-            elif strategy == "semantic_align":
-                # Pull desk toward window for natural daylight
-                if label_lower == "desk" and windows:
-                    win = random.choice(windows)
-                    win_box = win["boundingBox"]
-                    win_cx = win_box["x"] + win_box["width"] / 2.0
-                    win_cy = win_box["y"] + win_box["height"] / 2.0
-                    cx = box["x"] + w / 2.0
-                    cy = box["y"] + h / 2.0
-                    dx = (win_cx - cx) * 0.25
-                    dy = (win_cy - cy) * 0.25
-                    box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
-                    box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
-                # Pull seating items closer together (conversation zone)
-                elif label_lower in ["sofa", "armchair", "chair"]:
-                    seat_centers = [
-                        (s["boundingBox"]["x"] + s["boundingBox"]["width"]/2.0, s["boundingBox"]["y"] + s["boundingBox"]["height"]/2.0)
-                        for idx, s in enumerate(individual)
-                        if s.get("label", "").lower() in ["sofa", "armchair", "chair"] and idx != i
-                    ]
-                    if seat_centers:
-                        avg_x = sum(pt[0] for pt in seat_centers) / len(seat_centers)
-                        avg_y = sum(pt[1] for pt in seat_centers) / len(seat_centers)
-                        cx = box["x"] + w / 2.0
-                        cy = box["y"] + h / 2.0
-                        dx = (avg_x - cx) * 0.2
-                        dy = (avg_y - cy) * 0.2
-                        box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
-                        box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
+        elif strategy == "focal_align":
+            # 2. Focal-alignment mutation: align nodes with aligned_with/faces edges
+            aligned_edges = [
+                (u, v) for u, v, d in graph.graph.edges(data=True) 
+                if d.get("relationship_type") == "aligned_with"
+            ]
+            if aligned_edges:
+                u, v = random.choice(aligned_edges)
+                idx_u, idx_v = id_to_idx.get(u), id_to_idx.get(v)
+                if idx_u is not None and idx_v is not None:
+                    item_u, item_v = individual[idx_u], individual[idx_v]
+                    box_u, box_v = item_u["boundingBox"], item_v["boundingBox"]
+                    
+                    # Align centers vertically or horizontally
+                    u_cx = box_u["x"] + box_u["width"] / 2.0
+                    u_cy = box_u["y"] + box_u["height"] / 2.0
+                    v_cx = box_v["x"] + box_v["width"] / 2.0
+                    v_cy = box_v["y"] + box_v["height"] / 2.0
+                    
+                    # Decide alignment direction: check which offset is smaller
+                    if abs(u_cx - v_cx) < abs(u_cy - v_cy):
+                        # Align X centers
+                        box_v["x"] = max(0.0, min(100.0 - box_v["width"], u_cx - box_v["width"] / 2.0))
+                    else:
+                        # Align Y centers
+                        box_v["y"] = max(0.0, min(100.0 - box_v["height"], u_cy - box_v["height"] / 2.0))
                         
-            elif strategy == "avoid_doorway":
-                # Actively push furniture away from doorway paths
-                for door in doors:
-                    door_box = door["boundingBox"]
-                    door_cx = door_box["x"] + door_box["width"] / 2.0
-                    door_cy = door_box["y"] + door_box["height"] / 2.0
-                    cx = box["x"] + w / 2.0
-                    cy = box["y"] + h / 2.0
+                    self._update_item_bounding_box(item_v)
+
+        elif strategy == "wall_snap":
+            # 3. Wall-snapping mutation using attached_to_wall edges
+            wall_edges = [
+                (u, v) for u, v, d in graph.graph.edges(data=True) 
+                if d.get("relationship_type") == "attached_to_wall"
+            ]
+            if wall_edges:
+                u, wall = random.choice(wall_edges)
+                idx = id_to_idx.get(u)
+                if idx is not None:
+                    item = individual[idx]
+                    box = item["boundingBox"]
+                    if wall == "Wall_Left":
+                        box["x"] = 0.0
+                    elif wall == "Wall_Right":
+                        box["x"] = 100.0 - box["width"]
+                    elif wall == "Wall_Top":
+                        box["y"] = 0.0
+                    elif wall == "Wall_Bottom":
+                        box["y"] = 100.0 - box["height"]
+                    self._update_item_bounding_box(item)
+                    
+        elif strategy == "conversational_balance":
+            # 4. Conversational-balancing mutation: pull seating nodes toward centroid
+            seating_nodes = [n for n, attrs in graph.graph.nodes(data=True) if attrs.get("category") == "seating"]
+            if len(seating_nodes) >= 2:
+                centers = []
+                for n in seating_nodes:
+                    idx = id_to_idx.get(n)
+                    if idx is not None:
+                        item = individual[idx]
+                        box = item["boundingBox"]
+                        centers.append((box["x"] + box["width"]/2.0, box["y"] + box["height"]/2.0, idx))
+                if centers:
+                    avg_x = sum(pt[0] for pt in centers) / len(centers)
+                    avg_y = sum(pt[1] for pt in centers) / len(centers)
+                    # Pull each seating node 15% toward centroid
+                    for cx, cy, idx in centers:
+                        item = individual[idx]
+                        box = item["boundingBox"]
+                        dx = (avg_x - cx) * 0.15
+                        dy = (avg_y - cy) * 0.15
+                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
+                        self._update_item_bounding_box(item)
+                        
+        elif strategy == "avoid_doorway":
+            # 5. Accessibility-preserving mutation: avoid door boundaries
+            doors = [n for n, attrs in graph.graph.nodes(data=True) if attrs.get("label", "").lower() == "door"]
+            if doors:
+                door_node = graph.graph.nodes[doors[0]]
+                door_cx = door_node["center_x"]
+                door_cy = door_node["center_y"]
+                
+                # Push a random movable node away from the door
+                u = random.choice(movable_nodes)
+                idx = id_to_idx.get(u)
+                if idx is not None:
+                    item = individual[idx]
+                    box = item["boundingBox"]
+                    cx = box["x"] + box["width"] / 2.0
+                    cy = box["y"] + box["height"] / 2.0
                     dist = math.hypot(cx - door_cx, cy - door_cy)
                     if dist < 25.0 and dist > 0:
                         push_scale = 10.0
                         dx = ((cx - door_cx) / dist) * push_scale
                         dy = ((cy - door_cy) / dist) * push_scale
-                        box["x"] = max(0.0, min(100.0 - w, box["x"] + dx))
-                        box["y"] = max(0.0, min(100.0 - h, box["y"] + dy))
-            
-            self._update_item_bounding_box(item)
-            
-            # Preserve semantic group structures when moved
-            if dx != 0.0 or dy != 0.0:
-                self._preserve_furniture_relationships(individual, i, dx, dy)
+                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
+                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
+                        self._update_item_bounding_box(item)
 
     def _update_item_bounding_box(self, item: Dict[str, Any]) -> None:
         """Updates the bounding box dimensions based on rotation (0, 90, 180, 270)."""
@@ -608,64 +627,6 @@ class LayoutConstraintSolver:
             box["y"] = 0.0
         else:
             box["y"] = 100.0 - h
-
-    def _preserve_furniture_relationships(
-        self, 
-        individual: List[Dict[str, Any]], 
-        moved_idx: int, 
-        dx: float, 
-        dy: float
-    ) -> None:
-        """Preserves distance relationships for semantic zones (bed/nightstands, tables/chairs)."""
-        primary = individual[moved_idx]
-        prim_label = primary.get("label", "").lower()
-        
-        if random.random() > 0.8:
-            return
-            
-        prim_box = primary["boundingBox"]
-        px = prim_box["x"] + prim_box["width"] / 2.0
-        py = prim_box["y"] + prim_box["height"] / 2.0
-        
-        if prim_label == "bed":
-            for idx, item in enumerate(individual):
-                if idx == moved_idx:
-                    continue
-                if item.get("label", "").lower() == "sideboard":
-                    box = item["boundingBox"]
-                    cx = box["x"] + box["width"] / 2.0
-                    cy = box["y"] + box["height"] / 2.0
-                    if math.hypot(px - cx, py - cy) < 25.0:
-                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
-                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
-                        self._update_item_bounding_box(item)
-                        
-        elif prim_label == "dining table":
-            for idx, item in enumerate(individual):
-                if idx == moved_idx:
-                    continue
-                if item.get("label", "").lower() == "chair":
-                    box = item["boundingBox"]
-                    cx = box["x"] + box["width"] / 2.0
-                    cy = box["y"] + box["height"] / 2.0
-                    if math.hypot(px - cx, py - cy) < 25.0:
-                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
-                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
-                        self._update_item_bounding_box(item)
-
-        elif prim_label == "sofa":
-            for idx, item in enumerate(individual):
-                if idx == moved_idx:
-                    continue
-                lbl = item.get("label", "").lower()
-                if lbl in ["sideboard", "coffee table"]:
-                    box = item["boundingBox"]
-                    cx = box["x"] + box["width"] / 2.0
-                    cy = box["y"] + box["height"] / 2.0
-                    if math.hypot(px - cx, py - cy) < 30.0:
-                        box["x"] = max(0.0, min(100.0 - box["width"], box["x"] + dx))
-                        box["y"] = max(0.0, min(100.0 - box["height"], box["y"] + dy))
-                        self._update_item_bounding_box(item)
 
     def _generate_explainable_changes(
         self, 

@@ -397,155 +397,100 @@ class ExplainableScoringEngine:
 
     def _calculate_semantic_score(self, furniture: List[Dict[str, Any]]) -> Tuple[float, List[Dict[str, Any]]]:
         """
-        Evaluates ergonomic rules, functional relationships, and conversation furniture groupings.
+        Evaluates layout relationships using a formal Spatial Relationship Graph (NetworkX).
         """
+        from app.ai.spatial.spatial_relationship_graph import SpatialRelationshipGraph
+        
         reasoning = []
-        score = 80.0
         
-        # 1. Sofa facing TV focal check
-        sofa = next((item for item in furniture if item.get("label", "").lower() == "sofa"), None)
-        tv = next((item for item in furniture if item.get("label", "").lower() == "sideboard"), None) # Sideboard often mounts the TV
+        # Build relationship graph
+        graph = SpatialRelationshipGraph(furniture)
         
-        if sofa and tv:
-            sofa_box = sofa["boundingBox"]
-            tv_box = tv["boundingBox"]
+        rel_score = graph.compute_relationship_score()
+        align_score = graph.compute_alignment_score()
+        cohesion_score = graph.compute_group_cohesion()
+        conv_score = graph.compute_conversation_score()
+        path_score = graph.compute_path_connectivity()
+        
+        # Final semantic rating is a combined average of graph metrics
+        final_score = (rel_score * 0.35) + (align_score * 0.20) + (cohesion_score * 0.20) + (conv_score * 0.15) + (path_score * 0.10)
+        
+        # Generate graph-based explainable reasoning logs
+        if rel_score >= 85.0:
+            reasoning.append({
+                "id": "obs-graph-rel-good",
+                "title": "Optimized Spatial Coherence",
+                "description": "Furniture placement satisfies core semantic layout constraints and relational expectations.",
+                "type": "positive"
+            })
+        elif rel_score < 60.0:
+            reasoning.append({
+                "id": "obs-graph-rel-poor",
+                "title": "Weak Layout Coherence",
+                "description": "Adjust spatial distances between paired items (e.g. bed bedside tables or dining chairs) to restore cohesion.",
+                "type": "warning"
+            })
             
-            sc_x = sofa_box["x"] + sofa_box["width"] / 2.0
-            sc_y = sofa_box["y"] + sofa_box["height"] / 2.0
-            tc_x = tv_box["x"] + tv_box["width"] / 2.0
-            tc_y = tv_box["y"] + tv_box["height"] / 2.0
+        if align_score >= 85.0:
+            reasoning.append({
+                "id": "obs-graph-align-good",
+                "title": "Sofa Focal Alignment Strengthened",
+                "description": "The Sofa and media console Sideboard are correctly aligned to maximize ergonomic focal lines.",
+                "type": "positive"
+            })
+        elif align_score < 65.0:
+            reasoning.append({
+                "id": "obs-graph-align-poor",
+                "title": "Misaligned Focal Line",
+                "description": "Sofa and TV console are offset. Align them to face each other comfortably.",
+                "type": "warning"
+            })
             
-            # Check focal alignment (facing horizontally or vertically)
-            aligned_h = abs(sc_y - tc_y) > 25.0 and abs(sc_x - tc_x) < 18.0
-            aligned_v = abs(sc_x - tc_x) > 25.0 and abs(sc_y - tc_y) < 18.0
+        if cohesion_score >= 85.0:
+            reasoning.append({
+                "id": "obs-graph-cohesion-good",
+                "title": "Dining Cluster Cohesion Improved",
+                "description": "Dining chairs are symmetrically and compactly clustered around the dining table.",
+                "type": "positive"
+            })
+        elif cohesion_score < 65.0:
+            reasoning.append({
+                "id": "obs-graph-cohesion-poor",
+                "title": "Fragmented Furniture Clusters",
+                "description": "The dining table or bed grouping has high coordinate variance. Keep bedside tables and dining chairs compactly close to their primary nodes.",
+                "type": "warning"
+            })
             
-            if aligned_h or aligned_v:
-                score += 10.0
-                reasoning.append({
-                    "id": "obs-sem-sofa-tv",
-                    "title": "Optimal Focal Alignment",
-                    "description": "The Sofa directly faces the media console (Sideboard), supporting ergonomic focal lines.",
-                    "type": "positive"
-                })
-            else:
-                score -= 10.0
-                reasoning.append({
-                    "id": "obs-sem-sofa-tv-poor",
-                    "title": "Misaligned Focal Line",
-                    "description": "The Sofa and media console are offset. Align them to face each other comfortably.",
-                    "type": "warning"
-                })
-
-        # 2. Bedside tables near Beds
-        beds = [item for item in furniture if item.get("label", "").lower() == "bed"]
-        tables = [item for item in furniture if item.get("label", "").lower() == "sideboard"]
-        
-        if beds and tables:
-            for bed in beds:
-                bed_box = bed["boundingBox"]
-                bc_x = bed_box["x"] + bed_box["width"] / 2.0
-                bc_y = bed_box["y"] + bed_box["height"] / 2.0
-                
-                has_nearby_table = False
-                for t in tables:
-                    t_box = t["boundingBox"]
-                    tc_x = t_box["x"] + t_box["width"] / 2.0
-                    tc_y = t_box["y"] + t_box["height"] / 2.0
-                    
-                    dist = math.hypot(bc_x - tc_x, bc_y - tc_y)
-                    if dist < 22.0:
-                        has_nearby_table = True
-                        break
-                        
-                if has_nearby_table:
-                    score += 5.0
-                    reasoning.append({
-                        "id": "obs-sem-bed-table",
-                        "title": "Convenient Nightstands",
-                        "description": "Storage tables are placed adjacent to the Bed for easy access.",
-                        "type": "positive"
-                    })
-                else:
-                    score -= 5.0
-                    reasoning.append({
-                        "id": "obs-sem-bed-table-missing",
-                        "title": "Isolated Bedside Area",
-                        "description": "The Bed bedside area lacks nearby storage surfaces. Position side tables next to the Bed.",
-                        "type": "warning"
-                    })
-
-        # 3. Chairs near Dining Table
-        tables_dining = [item for item in furniture if item.get("label", "").lower() == "dining table"]
-        chairs = [item for item in furniture if item.get("label", "").lower() == "chair"]
-        
-        if tables_dining and chairs:
-            for t_din in tables_dining:
-                t_box = t_din["boundingBox"]
-                tc_x = t_box["x"] + t_box["width"] / 2.0
-                tc_y = t_box["y"] + t_box["height"] / 2.0
-                
-                chairs_nearby = 0
-                for ch in chairs:
-                    ch_box = ch["boundingBox"]
-                    cc_x = ch_box["x"] + ch_box["width"] / 2.0
-                    cc_y = ch_box["y"] + ch_box["height"] / 2.0
-                    
-                    dist = math.hypot(tc_x - cc_x, tc_y - cc_y)
-                    if dist < 22.0:
-                        chairs_nearby += 1
-                        
-                if chairs_nearby >= 2:
-                    score += 8.0
-                    reasoning.append({
-                        "id": "obs-sem-dining-chairs",
-                        "title": "Functional Dining Zone",
-                        "description": f"Chairs are grouped around the Dining Table to support seating.",
-                        "type": "positive"
-                    })
-                else:
-                    score -= 10.0
-                    reasoning.append({
-                        "id": "obs-sem-dining-chairs-missing",
-                        "title": "Isolated Dining Table",
-                        "description": "Dining Table has insufficient seating nearby. Position dining chairs adjacent to the table.",
-                        "type": "warning"
-                    })
-
-        # 4. Seating groupings (conversation zones)
-        seating_items = [item for item in furniture if item.get("label", "") in SEATING_FURNITURE]
-        if len(seating_items) >= 2:
-            avg_dist_seating = 0.0
-            comparisons = 0
-            for i in range(len(seating_items)):
-                for j in range(i + 1, len(seating_items)):
-                    boxA = seating_items[i]["boundingBox"]
-                    boxB = seating_items[j]["boundingBox"]
-                    ax = boxA["x"] + boxA["width"] / 2.0
-                    ay = boxA["y"] + boxA["height"] / 2.0
-                    bx = boxB["x"] + boxB["width"] / 2.0
-                    by = boxB["y"] + boxB["height"] / 2.0
-                    avg_dist_seating += math.hypot(ax - bx, ay - by)
-                    comparisons += 1
-                    
-            if comparisons > 0:
-                mean_dist = avg_dist_seating / comparisons
-                if mean_dist < 32.0:
-                    score += 5.0
-                    reasoning.append({
-                        "id": "obs-sem-grouping",
-                        "title": "Social Seating Group",
-                        "description": "Seating furniture is clustered close together to form a conversational focal zone.",
-                        "type": "positive"
-                    })
-                elif mean_dist > 50.0:
-                    score -= 5.0
-                    reasoning.append({
-                        "id": "obs-sem-grouping-far",
-                        "title": "Isolated Seating Items",
-                        "description": "Seating layout is fragmented. Group chairs and sofas closer together for visual focus.",
-                        "type": "warning"
-                    })
-
-        score = max(10.0, min(100.0, score))
+        if conv_score >= 85.0:
+            reasoning.append({
+                "id": "obs-graph-conv-good",
+                "title": "Conversational Seating Symmetry Increased",
+                "description": "Seating furniture is grouped close together, forming an active conversational focal zone.",
+                "type": "positive"
+            })
+        elif conv_score < 65.0:
+            reasoning.append({
+                "id": "obs-graph-conv-poor",
+                "title": "Fragmented Seating Group",
+                "description": "Armchairs and sofas are placed too far apart. Position them closer to encourage conversation.",
+                "type": "warning"
+            })
+            
+        if path_score >= 85.0:
+            reasoning.append({
+                "id": "obs-graph-path-good",
+                "title": "Accessibility Pathways Connected",
+                "description": "Pathway connections are fully linked from the doorway entrance to all major semantic groups.",
+                "type": "positive"
+            })
+        elif path_score < 65.0:
+            reasoning.append({
+                "id": "obs-graph-path-poor",
+                "title": "Isolated Semantic Zones",
+                "description": "Some layout areas are inaccessible due to obstacle blocks. Clear pathways to ensure navigability.",
+                "type": "warning"
+            })
+            
+        score = max(10.0, min(100.0, final_score))
         return score, reasoning
 
