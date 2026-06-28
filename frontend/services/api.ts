@@ -35,7 +35,7 @@ export const tokenStorage = {
     localStorage.setItem('access_token', accessToken);
     localStorage.setItem('refresh_token', refreshToken);
     // Also write access_token to cookie so Next.js middleware can read it
-    document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+    document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 12}; SameSite=Lax`;
   },
   clearTokens: (): void => {
     if (typeof window === 'undefined') return;

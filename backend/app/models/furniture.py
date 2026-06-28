@@ -24,3 +24,14 @@ class Furniture(Base):
 
     # Relationships
     room = relationship("Room", back_populates="furniture")
+
+    @property
+    def boundingBox(self):
+        """Returns the bounding box coordinates as a dictionary for Pydantic schema mapping."""
+        return {
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height
+        }
+

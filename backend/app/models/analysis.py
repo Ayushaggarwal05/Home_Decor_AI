@@ -48,3 +48,9 @@ class Analysis(Base):
             "accessibility": self.accessibility_score or 80,
             "lighting": self.lighting_score or 80
         }
+
+    @property
+    def detections(self):
+        """Returns the list of furniture detections from the associated room."""
+        return self.room.furniture if self.room else []
+

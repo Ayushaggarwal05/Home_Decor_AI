@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { roomService } from '@/services/room.service';
 import { useRoomStore } from '@/store/roomStore';
@@ -57,12 +58,12 @@ export function useRoomPolling({
   });
 
   // Sync completed analysis into the store
-  if (analysis && roomId) {
-    updateRoomAnalysis(roomId, analysis);
-    if (!alreadyHasAnalysis) {
+  useEffect(() => {
+    if (analysis && roomId && !alreadyHasAnalysis) {
+      updateRoomAnalysis(roomId, analysis);
       toast.success('Spatial analysis complete! Studio updated.');
     }
-  }
+  }, [analysis, roomId, alreadyHasAnalysis, updateRoomAnalysis, toast]);
 
   const analysisReady = alreadyHasAnalysis || (analysis !== null && analysis !== undefined);
 

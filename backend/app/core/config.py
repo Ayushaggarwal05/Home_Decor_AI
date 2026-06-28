@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # JWT security parameters
     SECRET_KEY: str = Field(default="aura_secret_orchestration_development_key_default")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_EXPIRE_HOURS: int = 12
     
     # Database configurations
     POSTGRES_USER: str = "homedecor_user"

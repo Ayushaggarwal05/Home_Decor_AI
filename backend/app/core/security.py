@@ -50,7 +50,7 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: timedelta = No
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        expire = datetime.now(timezone.utc) + timedelta(hours=settings.REFRESH_TOKEN_EXPIRE_HOURS)
     
     to_encode = {
         "exp": expire, 

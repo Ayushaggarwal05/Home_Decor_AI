@@ -30,8 +30,14 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${API_URL}/api/:path*`,
       },
+      {
+        // Proxy all static uploads calls to FastAPI
+        source: "/static/:path*",
+        destination: `${API_URL}/static/:path*`,
+      },
     ];
   },
+
 
   async redirects() {
     return [

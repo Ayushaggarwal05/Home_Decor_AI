@@ -68,6 +68,13 @@ app.add_exception_handler(AuraException, aura_exception_handler)
 # Mount API Routers mapping
 app.include_router(api_router)
 
+# Serve local uploads from static directory
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
 
 @app.get("/health", tags=["System Diagnostics"])
 def health_check() -> dict:
