@@ -25,6 +25,9 @@ class Analysis(Base):
     # reasoning holds Array<{id: str, title: str, description: str, type: str}>
     reasoning = Column(JSON, nullable=False)
     
+    # graph_data holds serialized NetworkX graph nodes and edges
+    graph_data = Column(JSON, nullable=True)
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     room_id = Column(Integer, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False, unique=True)
@@ -41,12 +44,12 @@ class Analysis(Base):
         elif self.clutter_level == "Medium":
             clutter_val = 70
         return {
-            "overall": self.overall_score or 80,
-            "flow": self.flow_score or 80,
-            "symmetry": self.symmetry_score or 80,
+            "overall": self.overall_score if self.overall_score is not None else 80,
+            "flow": self.flow_score if self.flow_score is not None else 80,
+            "symmetry": self.symmetry_score if self.symmetry_score is not None else 80,
             "clutter": clutter_val,
-            "accessibility": self.accessibility_score or 80,
-            "lighting": self.lighting_score or 80
+            "accessibility": self.accessibility_score if self.accessibility_score is not None else 80,
+            "lighting": self.lighting_score if self.lighting_score is not None else 80
         }
 
     @property

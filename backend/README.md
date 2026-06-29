@@ -21,21 +21,21 @@
 
 ## ⚡ Tech Stack
 
-| Technology | Version | Purpose |
-|-----------|---------|---------|
-| **FastAPI** | 0.110+ | Async REST API framework |
-| **Python** | 3.12+ | Core language runtime |
-| **PostgreSQL** | 15 | Relational database |
-| **SQLAlchemy** | 2.0+ | ORM with declarative typed models |
-| **Alembic** | 1.13+ | Schema migration management |
-| **Pydantic** | v2 | Request/response validation |
-| **Celery** | 5.3+ | Distributed background task workers |
-| **Redis** | 7 | Task broker, result backend, caching |
-| **PyJWT** | 2.8+ | JWT access and refresh token signing |
-| **bcrypt** | 5.0+ | Secure password hashing |
-| **Pillow** | 10.2+ | Image compression and processing |
-| **Cloudinary** | 1.39+ | CDN cloud image storage |
-| **Docker** | — | Containerization |
+| Technology     | Version | Purpose                              |
+| -------------- | ------- | ------------------------------------ |
+| **FastAPI**    | 0.110+  | Async REST API framework             |
+| **Python**     | 3.12+   | Core language runtime                |
+| **PostgreSQL** | 15      | Relational database                  |
+| **SQLAlchemy** | 2.0+    | ORM with declarative typed models    |
+| **Alembic**    | 1.13+   | Schema migration management          |
+| **Pydantic**   | v2      | Request/response validation          |
+| **Celery**     | 5.3+    | Distributed background task workers  |
+| **Redis**      | 7       | Task broker, result backend, caching |
+| **PyJWT**      | 2.8+    | JWT access and refresh token signing |
+| **bcrypt**     | 5.0+    | Secure password hashing              |
+| **Pillow**     | 10.2+   | Image compression and processing     |
+| **Cloudinary** | 1.39+   | CDN cloud image storage              |
+| **Docker**     | —       | Containerization                     |
 
 ---
 
@@ -163,16 +163,20 @@ backend/
 The AI pipeline is fully deterministic and explainable. Generative AI is only used at the final render stage.
 
 ### Detection → `app/ai/detection/detector.py`
+
 - `YOLOv8Detector`: Wraps PyTorch object detection. Identifies furniture labels (`Sofa`, `Coffee Table`, `Armchair`, `Bed`, `Bookshelf`, `Door`, `Window`) with bounding box coordinates and confidence scores.
 - Falls back to high-fidelity simulated detections when PyTorch is unavailable.
 
 ### Segmentation → `app/ai/segmentation/segmenter.py`
+
 - `RoomSegmenter`: Uses SAM (Segment Anything Model) or OpenCV contour-detection to extract wall boundaries and floor regions as free-space coordinate masks.
 
 ### Space Mapping → `app/ai/space_mapping/mapper.py`
+
 - `OccupancyGridGenerator`: Converts bounding box coordinates into a 10×10 grid matrix with cell states (`occupied`, `buffer`, `empty`). Calculates walkable ratio, footprint percentage, and dead-zone buffers.
 
 ### Optimization → `app/ai/optimization/solver.py`
+
 - `LayoutConstraintSolver`: A **full Genetic Algorithm** implementation:
   - **Genes**: `(x, y)` position coordinates for each furniture item
   - **Fitness function**: Penalizes IoU overlaps, doorway blockages, and asymmetry; rewards clearance and visual balance
@@ -180,6 +184,7 @@ The AI pipeline is fully deterministic and explainable. Generative AI is only us
   - **Output**: Optimized layout + explainable move descriptions
 
 ### Scoring → `app/ai/scoring/scorer.py`
+
 - `ExplainableScoringEngine`: Produces `0–100` scores for:
   - **Clutter**: Total furniture footprint density vs. room area
   - **Symmetry**: Average x-center deviation from room midline
@@ -188,9 +193,11 @@ The AI pipeline is fully deterministic and explainable. Generative AI is only us
   - **Lighting**: Mock daylight orientation scoring (extensible)
 
 ### Retrieval → `app/ai/retrieval/retriever.py`
+
 - `InspirationMatcher`: Tag-based and style-based catalog search (simulates CLIP + FAISS in production).
 
 ### Generation → `app/ai/generation/generator.py`
+
 - `RedesignImageGenerator`: Maps optimized layout + style prompt to Stable Diffusion ControlNet renders. Returns redesigned room URL + decor change suggestions per style (`Japandi Harmony`, `Industrial Loft`, `Scandinavian Crisp`).
 
 ---
@@ -200,51 +207,58 @@ The AI pipeline is fully deterministic and explainable. Generative AI is only us
 All routes are prefixed with `/api`. Authenticated routes require `Authorization: Bearer <access_token>`.
 
 ### Authentication
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/auth/signup` | ❌ | Register new user |
-| `POST` | `/api/auth/login` | ❌ | Login (returns access + refresh tokens) |
-| `POST` | `/api/auth/refresh` | ❌ | Rotate refresh token for a new pair |
-| `GET` | `/api/auth/me` | ✅ | Get current authenticated user |
+
+| Method | Endpoint            | Auth | Description                             |
+| ------ | ------------------- | ---- | --------------------------------------- |
+| `POST` | `/api/auth/signup`  | ❌   | Register new user                       |
+| `POST` | `/api/auth/login`   | ❌   | Login (returns access + refresh tokens) |
+| `POST` | `/api/auth/refresh` | ❌   | Rotate refresh token for a new pair     |
+| `GET`  | `/api/auth/me`      | ✅   | Get current authenticated user          |
 
 ### Upload
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/upload` | ✅ | Upload room image (max 5MB, JPEG/PNG/WebP) |
+
+| Method | Endpoint      | Auth | Description                                |
+| ------ | ------------- | ---- | ------------------------------------------ |
+| `POST` | `/api/upload` | ✅   | Upload room image (max 5MB, JPEG/PNG/WebP) |
 
 ### Analysis
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/analyze/room` | ✅ | Create room scan, queue Celery analysis |
-| `GET` | `/api/analyze/rooms` | ✅ | List all user room scans |
-| `GET` | `/api/analyze/room/{id}` | ✅ | Get single room details |
-| `GET` | `/api/analyze/room/{id}/result` | ✅ | Get analysis results (202 if pending) |
+
+| Method | Endpoint                        | Auth | Description                             |
+| ------ | ------------------------------- | ---- | --------------------------------------- |
+| `POST` | `/api/analyze/room`             | ✅   | Create room scan, queue Celery analysis |
+| `GET`  | `/api/analyze/rooms`            | ✅   | List all user room scans                |
+| `GET`  | `/api/analyze/room/{id}`        | ✅   | Get single room details                 |
+| `GET`  | `/api/analyze/room/{id}/result` | ✅   | Get analysis results (202 if pending)   |
 
 ### Optimization
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/optimize` | ✅ | Trigger GA layout optimization job |
-| `GET` | `/api/optimize/{job_id}` | ✅ | Poll job status and results |
+
+| Method | Endpoint                 | Auth | Description                        |
+| ------ | ------------------------ | ---- | ---------------------------------- |
+| `POST` | `/api/optimize`          | ✅   | Trigger GA layout optimization job |
+| `GET`  | `/api/optimize/{job_id}` | ✅   | Poll job status and results        |
 
 ### Redesign
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/redesign` | ✅ | Trigger generative redesign pipeline |
-| `GET` | `/api/redesign/{job_id}` | ✅ | Poll redesign status and render URLs |
-| `GET` | `/api/redesign/room/{room_id}` | ✅ | List all redesigns for a room |
+
+| Method | Endpoint                       | Auth | Description                          |
+| ------ | ------------------------------ | ---- | ------------------------------------ |
+| `POST` | `/api/redesign`                | ✅   | Trigger generative redesign pipeline |
+| `GET`  | `/api/redesign/{job_id}`       | ✅   | Poll redesign status and render URLs |
+| `GET`  | `/api/redesign/room/{room_id}` | ✅   | List all redesigns for a room        |
 
 ### Scoring & Utilities
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/scoring/recalculate` | ✅ | Recalculate scores for a custom layout |
-| `GET` | `/api/retrieval/inspirations` | ✅ | Fetch matched inspiration catalog URLs |
-| `GET` | `/api/compare` | ✅ | Compare score deltas between two rooms |
+
+| Method | Endpoint                      | Auth | Description                            |
+| ------ | ----------------------------- | ---- | -------------------------------------- |
+| `POST` | `/api/scoring/recalculate`    | ✅   | Recalculate scores for a custom layout |
+| `GET`  | `/api/retrieval/inspirations` | ✅   | Fetch matched inspiration catalog URLs |
+| `GET`  | `/api/compare`                | ✅   | Compare score deltas between two rooms |
 
 ---
 
 ## 🛠️ Local Setup (Without Docker)
 
 ### 1. Create Virtual Environment
+
 ```bash
 cd backend
 python -m venv venv
@@ -257,24 +271,28 @@ source venv/bin/activate
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment
+
 ```bash
 cp .env.example .env
 # Edit .env with your values
 ```
 
 ### 4. Run the API Server
+
 ```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### 5. Run Celery Workers (separate terminals)
+
 ```bash
-# CPU worker — analysis and optimization tasks
+# CPU worker — analysis and optimization tasks in venv
 celery -A app.tasks.analysis_tasks.celery_app worker -Q default --loglevel=info
 
 # GPU worker — heavy Stable Diffusion tasks
@@ -325,25 +343,29 @@ python -m compileall -f app
 ## 🚢 Production Deployment
 
 ### Hardened Docker Image
+
 ```bash
 docker build -t aura-backend -f Dockerfile.prod .
 ```
+
 - Multi-stage build (builder + runner)
 - Runs as non-root `appuser` (UID 10000)
 - Minimal runtime image (python:3.12-slim)
 
 ### Production Compose
+
 ```bash
 docker-compose -f docker-compose.prod.yml up --build
 ```
 
-| Service | Queue | Concurrency | GPU |
-|---------|-------|-------------|-----|
-| `web` | — | — | No |
-| `default_worker` | `default` | 4 | No |
-| `heavy_worker` | `heavy_ai` | 1 | Optional (NVIDIA) |
+| Service          | Queue      | Concurrency | GPU               |
+| ---------------- | ---------- | ----------- | ----------------- |
+| `web`            | —          | —           | No                |
+| `default_worker` | `default`  | 4           | No                |
+| `heavy_worker`   | `heavy_ai` | 1           | Optional (NVIDIA) |
 
 ### Render.com Blueprint
+
 1. Push `render.yaml` to your GitHub repo
 2. Go to **Render → New Blueprint → Connect repo**
 3. All services (API, worker, Redis, PostgreSQL) auto-provision
@@ -381,15 +403,15 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ## ⚡ Production Features
 
-| Feature | Implementation |
-|---------|---------------|
-| **JWT Refresh Rotation** | Access (30m) + Refresh (7d) tokens, `/auth/refresh` rotation endpoint |
-| **Rate Limiting** | Redis sliding-window limiter (10 req/min on POST endpoints) |
-| **Request Tracing** | `X-Correlation-ID` headers injected into every request and log entry |
-| **Latency Logging** | Per-request latency logged via `RequestTracingMiddleware` |
-| **Redis Caching** | `@cache_response` decorator with TTL support for inspiration catalog |
-| **Image Compression** | Pillow progressive JPEG, Lanczos downsampling, iterative quality reduction |
-| **File Size Limits** | 5MB upload hard limit enforced before storage writes |
-| **Celery Queue Routing** | `default` queue (CPU tasks) vs `heavy_ai` queue (GPU renders) |
-| **Bcrypt Hashing** | Direct bcrypt (Python 3.13 compatible, no passlib wrapper) |
-| **Error Handling** | Custom `AuraException` hierarchy with structured JSON responses |
+| Feature                  | Implementation                                                             |
+| ------------------------ | -------------------------------------------------------------------------- |
+| **JWT Refresh Rotation** | Access (30m) + Refresh (7d) tokens, `/auth/refresh` rotation endpoint      |
+| **Rate Limiting**        | Redis sliding-window limiter (10 req/min on POST endpoints)                |
+| **Request Tracing**      | `X-Correlation-ID` headers injected into every request and log entry       |
+| **Latency Logging**      | Per-request latency logged via `RequestTracingMiddleware`                  |
+| **Redis Caching**        | `@cache_response` decorator with TTL support for inspiration catalog       |
+| **Image Compression**    | Pillow progressive JPEG, Lanczos downsampling, iterative quality reduction |
+| **File Size Limits**     | 5MB upload hard limit enforced before storage writes                       |
+| **Celery Queue Routing** | `default` queue (CPU tasks) vs `heavy_ai` queue (GPU renders)              |
+| **Bcrypt Hashing**       | Direct bcrypt (Python 3.13 compatible, no passlib wrapper)                 |
+| **Error Handling**       | Custom `AuraException` hierarchy with structured JSON responses            |

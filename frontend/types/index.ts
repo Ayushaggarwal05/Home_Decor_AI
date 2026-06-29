@@ -56,6 +56,9 @@ export interface DetectionResult {
   label: string;
   confidence: number;
   boundingBox: BoundingBox;
+  dimWidth?: number;
+  dimDepth?: number;
+  dimHeight?: number;
 }
 
 export interface PlacementReasoning {
@@ -75,6 +78,29 @@ export interface PlacementMetadata {
   reason: string;
 }
 
+export interface GraphNode {
+  id: string;
+  label: string;
+  category: string;
+  boundingBox?: BoundingBox;
+  center_x?: number;
+  center_y?: number;
+  movable?: boolean;
+  anchor_priority?: string;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  relationship: string;
+  weight: number;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
 // ---------------------------------------------------------------------------
 // Analysis types
 // ---------------------------------------------------------------------------
@@ -88,6 +114,7 @@ export interface AnalysisResult {
   clutterLevel: 'Low' | 'Medium' | 'High';
   symmetryScore: number;
   accessibilityScore: number;
+  graphData?: GraphData;
 }
 
 // ---------------------------------------------------------------------------
@@ -220,6 +247,9 @@ export interface BackendFurnitureDetection {
   label: string;
   confidence: number;
   boundingBox: BackendBoundingBox;   // backend sends camelCase here already
+  dim_width?: number;
+  dim_depth?: number;
+  dim_height?: number;
 }
 
 export interface BackendAnalysisScore {
@@ -253,6 +283,7 @@ export interface BackendAnalysis {
     rows: number;
     cols: number;
   };
+  graph_data?: any;
 }
 
 export interface BackendRoom {

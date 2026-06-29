@@ -62,6 +62,9 @@ export function mapBackendAnalysis(raw: BackendAnalysis): AnalysisResult {
       width: d.boundingBox.width,
       height: d.boundingBox.height,
     },
+    dimWidth: d.dim_width,
+    dimDepth: d.dim_depth,
+    dimHeight: d.dim_height,
   }));
 
   const reasoning: PlacementReasoning[] = (raw.reasoning || []).map((r) => ({
@@ -81,6 +84,24 @@ export function mapBackendAnalysis(raw: BackendAnalysis): AnalysisResult {
     detections,
     reasoning,
     occupancyMap: mapOccupancyGrid(raw.occupancy_grid),
+    graphData: raw.graph_data ? {
+      nodes: (raw.graph_data.nodes || []).map((n: any) => ({
+        id: String(n.id),
+        label: n.label,
+        category: n.category,
+        boundingBox: n.boundingBox,
+        center_x: n.center_x,
+        center_y: n.center_y,
+        movable: n.movable,
+        anchor_priority: n.anchor_priority,
+      })),
+      edges: (raw.graph_data.edges || []).map((e: any) => ({
+        source: String(e.source),
+        target: String(e.target),
+        relationship: e.relationship,
+        weight: e.weight,
+      })),
+    } : undefined,
   };
 }
 

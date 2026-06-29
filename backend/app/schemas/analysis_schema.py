@@ -12,6 +12,9 @@ class FurnitureDetection(BaseModel):
     label: str
     confidence: float
     boundingBox: BoundingBox
+    dim_width: Optional[float] = None
+    dim_depth: Optional[float] = None
+    dim_height: Optional[float] = None
 
 class AnalysisScore(BaseModel):
     overall: int
@@ -38,6 +41,7 @@ class AnalysisResponse(BaseModel):
     detections: List[FurnitureDetection]
     reasoning: List[ReasoningItem]
     occupancy_grid: Dict[str, Any]
+    graph_data: Optional[Dict[str, Any]] = None
 
     class Config:
         from_attributes = True

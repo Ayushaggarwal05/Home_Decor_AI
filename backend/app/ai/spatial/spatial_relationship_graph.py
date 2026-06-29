@@ -429,3 +429,29 @@ class SpatialRelationshipGraph:
                 connected_count += 1
                 
         return (connected_count / len(pathway_nodes)) * 100.0
+
+    def serialize_graph(self) -> Dict[str, Any]:
+        """Serializes NetworkX graph nodes and edges into a JSON dictionary."""
+        nodes = []
+        for node_id, attrs in self.graph.nodes(data=True):
+            nodes.append({
+                "id": node_id,
+                "label": attrs.get("label", "Object"),
+                "category": attrs.get("category", "decor"),
+                "boundingBox": attrs.get("boundingBox"),
+                "center_x": attrs.get("center_x"),
+                "center_y": attrs.get("center_y"),
+                "movable": attrs.get("movable", True),
+                "anchor_priority": attrs.get("anchor_priority", "none")
+            })
+            
+        edges = []
+        for u, v, d in self.graph.edges(data=True):
+            edges.append({
+                "source": u,
+                "target": v,
+                "relationship": d.get("relationship_type", "connected"),
+                "weight": d.get("weight", 1.0)
+            })
+            
+        return {"nodes": nodes, "edges": edges}

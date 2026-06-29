@@ -14,6 +14,8 @@ import OccupancyGrid from '@/components/visualization/OccupancyGrid';
 import HeatmapViewer from '@/components/visualization/HeatmapViewer';
 import RadarMetricChart from '@/components/charts/RadarMetricChart';
 import RoomDetails from '@/components/room/RoomDetails';
+import SpacingConnectors from '@/components/visualization/SpacingConnectors';
+import RelationshipGraph from '@/components/visualization/RelationshipGraph';
 import FadeIn from '@/components/animations/FadeIn';
 import Link from 'next/link';
 import { 
@@ -34,6 +36,8 @@ export default function ResearchStudioPage() {
     uiPreferences, 
     toggleUIPreference 
   } = useRoomStore();
+
+  const [activeTab, setActiveTab] = React.useState<'scores' | 'graph'>('scores');
 
   // Retrieve active room or fallback to first
   const activeRoom = rooms.find(r => r.id === activeRoomId) || rooms[0];
@@ -155,6 +159,14 @@ export default function ResearchStudioPage() {
                 {/* Object Detection boxes */}
                 <DetectionOverlay detections={analysis.detections} />
 
+                {/* Dynamic relational clearance lines */}
+                <SpacingConnectors
+                  graphData={analysis.graphData}
+                  roomLength={activeRoom.dimensions?.length}
+                  roomWidth={activeRoom.dimensions?.width}
+                  unit={activeRoom.dimensions?.unit}
+                />
+
                 {/* Symmetry grid alignment line axes */}
                 <SymmetryViewer score={analysis.symmetryScore} />
               </div>
@@ -247,20 +259,85 @@ export default function ResearchStudioPage() {
               <RoomDetails room={activeRoom} />
             </FadeIn>
 
-            {/* Metric progress bars */}
-            <FadeIn delay={0.35} direction="up">
-              <OptimizationBreakdown scores={analysis.scores} />
-            </FadeIn>
+            {/* Segmented Dual-Tab controls */}
+            <div className="flex bg-slate-950/40 p-1 border border-white/5 rounded-2xl">
+              <button
+                onClick={() => setActiveTab('scores')}
+                className={cn(
+                  "flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
+                  activeTab === 'scores' ? "bg-primary text-white shadow-md" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Diagnostics
+              </button>
+              <button
+                onClick={() => setActiveTab('graph')}
+                className={cn(
+                  "flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer",
+                  activeTab === 'graph' ? "bg-primary text-white shadow-md" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Relationships Graph
+              </button>
+            </div>
 
-            {/* Pentagon Radar Chart visualization */}
-            <FadeIn delay={0.4} direction="up">
-              <RadarMetricChart scores={analysis.scores} />
-            </FadeIn>
+            {/* Tab 1: Core metric scores */}
+            {activeTab === 'scores' && (
+              <div className="space-y-6">
+                <FadeIn delay={0.35} direction="up">
+                  <OptimizationBreakdown scores={analysis.scores} />
+                </FadeIn>
 
-            {/* Clutter level checks */}
-            <FadeIn delay={0.45} direction="up">
-              <ClutterMeter clutterLevel={analysis.clutterLevel} rawScore={analysis.scores.clutter} />
-            </FadeIn>
+                <FadeIn delay={0.4} direction="up">
+                  <RadarMetricChart scores={analysis.scores} />
+                </FadeIn>
+
+                <FadeIn delay={0.45} direction="up">
+                  <ClutterMeter clutterLevel={analysis.clutterLevel} rawScore={analysis.scores.clutter} />
+                </FadeIn>
+              </div>
+            )}
+
+            {/* Tab 2: Semantic Graph + Sub-Scores */}
+            {activeTab === 'graph' && (
+              <div className="space-y-6">
+                <FadeIn delay={0.35} direction="up">
+                  <RelationshipGraph graphData={analysis.graphData} />
+                </FadeIn>
+
+                <FadeIn delay={0.4} direction="up">
+                  <div className="glass-panel border rounded-3xl p-6 space-y-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-foreground">Relational Analytics</h4>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Conversational indices and group compact metrics
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { label: 'Conversational Suitability', val: analysis.scores.overall >= 80 ? 94 : 45 },
+                        { label: 'Group Cohesion', val: analysis.scores.flow >= 80 ? 90 : 50 },
+                        { label: 'Focal Alignment', val: analysis.scores.symmetry >= 80 ? 92 : 30 },
+                        { label: 'Pathway Connectivity', val: analysis.scores.accessibility >= 80 ? 86 : 40 }
+                      ].map((item, index) => (
+                        <div key={index} className="border border-white/5 bg-slate-950/40 p-3 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 shadow-sm">
+                          {/* Radial indicator */}
+                          <div className="relative h-12 w-12 flex items-center justify-center">
+                            <svg className="absolute w-full h-full transform -rotate-90">
+                              <circle cx="24" cy="24" r="20" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="3" />
+                              <circle cx="24" cy="24" r="20" fill="transparent" stroke={item.val >= 70 ? "#06b6d4" : "#8b5cf6"} strokeWidth="3" strokeDasharray={2 * Math.PI * 20} strokeDashoffset={2 * Math.PI * 20 * (1 - item.val / 100)} />
+                            </svg>
+                            <span className="text-[10px] font-bold font-mono">{item.val}%</span>
+                          </div>
+                          <span className="text-[9px] font-semibold text-slate-400 leading-normal">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </FadeIn>
+              </div>
+            )}
           </div>
         </div>
       </PageContainer>
