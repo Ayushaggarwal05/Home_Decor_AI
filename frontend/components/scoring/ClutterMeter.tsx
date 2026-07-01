@@ -64,10 +64,9 @@ export default function ClutterMeter({ clutterLevel, rawScore }: ClutterMeterPro
         <div className="w-full h-2.5 bg-muted rounded-full relative overflow-hidden">
           {/* Gradient backdrop: Green to Amber to Red */}
           <div className="absolute inset-0 bg-gradient-to-r from-green-500 via-amber-500 to-red-500 opacity-80" />
-          {/* Mask representing clean space percentage (high rawScore = less clutter, so mask hides more of the bar) */}
           <div 
             className="h-full bg-muted absolute right-0 transition-all duration-1000"
-            style={{ width: `${Math.max(0, 100 - rawScore)}%` }}
+            style={{ width: `${Math.max(0, rawScore)}%` }}
           />
         </div>
         <div className="flex justify-between text-[9px] font-bold text-muted-foreground uppercase px-0.5">

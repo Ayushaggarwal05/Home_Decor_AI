@@ -22,7 +22,7 @@ services:
       - .:/workspace
     env_file:
       - .env
-    command: celery -A app.tasks.analysis_tasks.celery_app worker --loglevel=info
+    command: celery -A app.tasks.analysis_tasks.celery_app worker -Q default,heavy_ai --loglevel=info
     depends_on:
       db:
         condition: service_healthy
