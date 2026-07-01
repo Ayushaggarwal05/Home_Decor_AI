@@ -2,10 +2,16 @@ FROM python:3.12-slim
 
 WORKDIR /workspace
 
-# Install system compilation packages for postgres and general build helpers
+# Install system compilation packages for postgres, general build helpers, and OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    libgl1 \
+    libglib2.0-0 \
+    libxcb1 \
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Cache requirements installation
