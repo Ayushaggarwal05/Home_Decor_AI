@@ -1,0 +1,41 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python Cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local Pre-trained Models (Mounted dynamically via dev volumes)
+*.pt
+*.bin
+*.onnx
+
+# Databases & Secrets
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+
+# Version Control & IDEs
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Docker Files
+Dockerfile
+Dockerfile.prod
+docker-compose.yml
+docker-compose.prod.yml
+render.yaml
+
+# Assets & Uploads
+static/uploads/

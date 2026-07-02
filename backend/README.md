@@ -320,7 +320,7 @@ To run the backend services easily on Windows using PowerShell, make sure **Dock
 ### 1. Start Services in the Background (Detached Mode)
 
 ```powershell
-docker-compose up -d
+docker compose up -d
 ```
 
 _Starts the FastAPI server, PostgreSQL db, Redis broker, and Celery worker. Once started, this releases your terminal so you can close it or use it for other commands._
@@ -328,7 +328,7 @@ _Starts the FastAPI server, PostgreSQL db, Redis broker, and Celery worker. Once
 ### 2. View Live Logs (Highly Recommended for Debugging)
 
 ```powershell
-docker-compose logs -f
+docker compose logs -f
 ```
 
 _Stream logs from all 4 services to monitor incoming requests and Celery background task processing._
@@ -336,7 +336,7 @@ _Stream logs from all 4 services to monitor incoming requests and Celery backgro
 ### 3. Stop All Services (Frees up RAM & CPU)
 
 ```powershell
-docker-compose down
+docker compose down
 ```
 
 _Gracefully stops all backend processes and frees up system memory. Your database records will be kept safe._
@@ -346,7 +346,7 @@ _Gracefully stops all backend processes and frees up system memory. Your databas
 If you update `requirements.txt` or modify the `Dockerfile`, force a rebuild when starting:
 
 ```powershell
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### 5. Hard Reset Database (Fresh Start)
@@ -354,7 +354,7 @@ docker-compose up -d --build
 To erase your PostgreSQL database volume and recreate a clean database:
 
 ```powershell
-docker-compose down -v
+docker compose down -v
 ```
 
 ---

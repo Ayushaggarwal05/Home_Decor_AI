@@ -1,15 +1,20 @@
-version: '3.8'
-
 services:
   web:
     build: .
+    restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - .:/workspace
+      - /workspace/venv  # Anonymous volume masking host venv from polluting container env
     env_file:
       - .env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1000M
     depends_on:
       db:
         condition: service_healthy
@@ -18,11 +23,27 @@ services:
 
   worker:
     build: .
+    restart: unless-stopped
     volumes:
       - .:/workspace
+      - /workspace/venv  # Anonymous volume masking host venv from polluting container env
+      - hf_cache:/root/.cache/huggingface
     env_file:
       - .env
-    command: celery -A app.tasks.analysis_tasks.celery_app worker -Q default,heavy_ai --loglevel=info
+    dns:
+      - 10.255.255.254
+    environment:
+      - OMP_NUM_THREADS=2
+      - MKL_NUM_THREADS=2
+      - OPENBLAS_NUM_THREADS=2
+      - VECLIB_MAXIMUM_THREADS=2
+      - NUMEXPR_NUM_THREADS=2
+    command: celery -A app.tasks.analysis_tasks.celery_app worker -Q default,heavy_ai --loglevel=info --concurrency=1
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 3000M
     depends_on:
       db:
         condition: service_healthy
@@ -31,6 +52,7 @@ services:
 
   db:
     image: postgres:15-alpine
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -39,6 +61,11 @@ services:
       POSTGRES_DB: homedecor_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 500M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U homedecor_user -d homedecor_db"]
       interval: 5s
@@ -47,8 +74,15 @@ services:
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 250M
 
 volumes:
   postgres_data:
+  hf_cache:

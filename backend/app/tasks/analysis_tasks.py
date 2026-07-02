@@ -180,3 +180,12 @@ def run_spatial_analysis_task(self, room_id: int) -> int:
         raise self.retry(exc=exc)
     finally:
         db.close()
+        # Explicit garbage collection to release PyTorch tensors and image streams from memory immediately
+        try:
+            import gc
+            gc.collect()
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception as gc_err:
+            logger.debug(f"Garbage collection clean up failed: {gc_err}")

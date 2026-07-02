@@ -2,6 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /workspace
 
+# Enforce Python environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 # Install system compilation packages for postgres, general build helpers, and OpenCV
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -14,11 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Cache requirements installation
+# Cache requirements installation using pip cache mount for rapid dependency updates
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt
 
-# Mount application source files
+# Mount application source files (safeguarded by .dockerignore)
 COPY . .
 
 EXPOSE 8000
