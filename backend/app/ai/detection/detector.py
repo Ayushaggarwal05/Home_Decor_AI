@@ -10,6 +10,7 @@ import base64
 from PIL import Image
 from ultralytics import YOLO
 from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
+from huggingface_hub import InferenceClient
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,37 @@ except ImportError:
             return inter_area / union_area if union_area > 0 else 0.0
         except Exception:
             return 0.0
+
+
+def safe_float_from_val(val: Any) -> float:
+    """
+    Safely extract a float value from various raw types (nested lists, strings, numbers).
+    """
+    if isinstance(val, (list, tuple)):
+        if len(val) > 0:
+            return safe_float_from_val(val[0])
+        return 0.0
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def extract_json_from_text(text: str) -> str:
+    """
+    Extract the first JSON block (array or object) from conversational or code-blocked text.
+    """
+    # Find first '[' and last ']'
+    start_idx = text.find('[')
+    end_idx = text.rfind(']')
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        return text[start_idx:end_idx+1]
+    # Fallback to finding first '{' and last '}'
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+        return text[start_idx:end_idx+1]
+    return text
 
 
 class ModelRegistry:
@@ -436,39 +468,133 @@ class YOLOv8Detector:
                 img_b64 = base64.b64encode(image_bytes).decode('utf-8')
                 
                 model_id = getattr(settings, "DINO_API_MODEL", "google/owlv2-base-patch16-ensemble")
-                api_url = f"https://api-inference.huggingface.co/models/{model_id}"
                 
-                headers = {"Authorization": f"Bearer {hf_token}"}
-                payload = {
-                    "inputs": img_b64,
-                    "parameters": {
-                        "candidate_labels": self.dino_prompts
-                    }
-                }
+                from huggingface_hub import InferenceClient
+                from huggingface_hub.utils import HfHubHTTPError
                 
-                # Retry loop to handle 503 model-loading codes gracefully
+                client = InferenceClient(token=hf_token, timeout=25)
+                
+                # Determine if we should use VLM chat completion instead of legacy serverless task
+                is_vlm = any(keyword in model_id.lower() for keyword in ["vl-", "vl/", "-vl", "vision", "instruct", "chat"])
+                
+                api_results = None
+                success = False
+                http_error_logged = False
                 retries = 3
                 wait_time = 5.0
-                response = None
-                for attempt in range(retries):
-                    try:
-                        response = requests.post(api_url, headers=headers, json=payload, timeout=25)
-                        if response.status_code == 200:
-                            break
-                        elif response.status_code == 503:
-                            err_data = response.json()
-                            est_time = err_data.get("estimated_time", wait_time)
-                            sleep_dur = min(est_time, 10.0)
-                            logger.warning(f"Model {model_id} is loading on HF. Retrying in {sleep_dur}s (Attempt {attempt+1}/{retries})...")
-                            time.sleep(sleep_dur)
-                        else:
-                            break
-                    except requests.RequestException as req_err:
-                        logger.warning(f"Network error on HF API call: {req_err}. Retrying...")
-                        time.sleep(2.0)
                 
-                if response is not None and response.status_code == 200:
-                    api_results = response.json()
+                if is_vlm:
+                    prompt = (
+                        f"Perform zero-shot object detection on this image for candidate labels: {self.dino_prompts}.\n"
+                        f"Return a JSON array of objects. Each object MUST strictly follow this dictionary format:\n"
+                        f"{{\n"
+                        f"  \"score\": 0.95,\n"
+                        f"  \"label\": \"chair\",\n"
+                        f"  \"box\": {{\n"
+                        f"    \"xmin\": 100,\n"
+                        f"    \"ymin\": 100,\n"
+                        f"    \"xmax\": 300,\n"
+                        f"    \"ymax\": 300\n"
+                        f"  }}\n"
+                        f"}}\n"
+                        f"Use pixel coordinates based on the image size of {image_width}x{image_height}.\n"
+                        f"Ensure 'box' is a JSON object/dictionary, NOT a list.\n"
+                        f"CRITICAL INSTRUCTIONS:\n"
+                        f"- Be extremely conservative and precise. Do not guess or hallucinate objects.\n"
+                        f"- Only detect objects that are clearly and unambiguously present.\n"
+                        f"- Do NOT detect daybeds, single beds, or blankets as a 'sofa' or 'couch'.\n"
+                        f"- Do NOT detect laptop stands, trays, or lapdesks as a 'coffee table' or 'dining table'.\n"
+                        f"Output ONLY the raw JSON array. No markdown code blocks, no other text."
+                    )
+                    messages = [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}},
+                                {"type": "text", "text": prompt}
+                            ]
+                        }
+                    ]
+                    
+                    for attempt in range(retries):
+                        try:
+                            response = client.chat.completions.create(
+                                model=model_id,
+                                messages=messages,
+                                max_tokens=1000
+                            )
+                            content = response.choices[0].message.content.strip()
+                            json_str = extract_json_from_text(content)
+                            import json
+                            api_results = json.loads(json_str)
+                            
+                            # If the model wrapped the JSON list in a top-level dictionary, unpack it
+                            if isinstance(api_results, dict):
+                                for val in api_results.values():
+                                    if isinstance(val, list):
+                                        api_results = val
+                                        break
+                                        
+                            success = True
+                            break
+                        except HfHubHTTPError as http_err:
+                            status_code = http_err.response.status_code if http_err.response is not None else None
+                            if status_code == 503:
+                                logger.warning(f"VLM model {model_id} is loading. Retrying in {wait_time}s...")
+                                time.sleep(wait_time)
+                            else:
+                                logger.error(f"VLM API error: {status_code} - {http_err.response.text if http_err.response is not None else ''}")
+                                http_error_logged = True
+                                break
+                        except Exception as req_err:
+                            logger.warning(f"Network error on VLM API call: {req_err}. Retrying...")
+                            time.sleep(2.0)
+                else:
+                    api_url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
+                    from huggingface_hub.inference._common import RequestParameters
+                    headers = {"Authorization": f"Bearer {hf_token}"}
+                    payload = {
+                        "inputs": img_b64,
+                        "parameters": {
+                            "candidate_labels": self.dino_prompts
+                        }
+                    }
+                    request_params = RequestParameters(
+                        url=api_url,
+                        task="zero-shot-object-detection",
+                        model=model_id,
+                        json=payload,
+                        data=None,
+                        headers=headers
+                    )
+                    for attempt in range(retries):
+                        try:
+                            response_bytes = client._inner_post(request_params)
+                            import json
+                            api_results = json.loads(response_bytes.decode('utf-8'))
+                            success = True
+                            break
+                        except HfHubHTTPError as http_err:
+                            status_code = http_err.response.status_code if http_err.response is not None else None
+                            if status_code == 503:
+                                try:
+                                    err_data = http_err.response.json()
+                                except Exception:
+                                    err_data = {}
+                                est_time = err_data.get("estimated_time", wait_time)
+                                sleep_dur = min(est_time, 10.0)
+                                logger.warning(f"Model {model_id} is loading on HF. Retrying in {sleep_dur}s (Attempt {attempt+1}/{retries})...")
+                                time.sleep(sleep_dur)
+                            else:
+                                logger.error(f"Hugging Face API error: {status_code} - {http_err.response.text if http_err.response is not None else ''}")
+                                http_error_logged = True
+                                break
+                        except Exception as req_err:
+                            logger.warning(f"Network error on HF API call: {req_err}. Retrying...")
+                            time.sleep(2.0)
+
+                
+                if success:
                     logger.info(f"Hugging Face Zero-Shot API inference completed in {time.time() - start_dino:.4f}s.")
                     
                     if isinstance(api_results, list):
@@ -481,10 +607,29 @@ class YOLOv8Detector:
                             if score < self.dino_box_threshold:
                                 continue
                                 
-                            x1 = float(box.get("xmin", 0.0))
-                            y1 = float(box.get("ymin", 0.0))
-                            x2 = float(box.get("xmax", 0.0))
-                            y2 = float(box.get("ymax", 0.0))
+                            x1, y1, x2, y2 = 0.0, 0.0, 0.0, 0.0
+                            if isinstance(box, dict):
+                                x1 = safe_float_from_val(box.get("xmin", 0.0))
+                                y1 = safe_float_from_val(box.get("ymin", 0.0))
+                                x2 = safe_float_from_val(box.get("xmax", 0.0))
+                                y2 = safe_float_from_val(box.get("ymax", 0.0))
+                            elif isinstance(box, (list, tuple)) and len(box) == 4:
+                                val_0 = safe_float_from_val(box[0])
+                                val_1 = safe_float_from_val(box[1])
+                                val_2 = safe_float_from_val(box[2])
+                                val_3 = safe_float_from_val(box[3])
+                                y1, x1, y2, x2 = val_0, val_1, val_2, val_3
+                                if x1 > x2:
+                                    x1, x2 = x2, x1
+                                if y1 > y2:
+                                    y1, y2 = y2, y1
+                                    
+                            # If VLM returned normalized coordinates [0, 1] instead of raw pixels, scale them up
+                            if x1 <= 1.0 and y1 <= 1.0 and x2 <= 1.0 and y2 <= 1.0:
+                                x1 *= image_width
+                                y1 *= image_height
+                                x2 *= image_width
+                                y2 *= image_height
                             
                             # Normalize to room percentage coordinate scale
                             x = max(0.0, min(100.0, (x1 / image_width) * 100.0))
@@ -504,9 +649,7 @@ class YOLOv8Detector:
                             })
                     else:
                         logger.error(f"Hugging Face API returned unexpected structure: {api_results}")
-                elif response is not None:
-                    logger.error(f"Hugging Face API error: {response.status_code} - {response.text}")
-                else:
+                elif not http_error_logged:
                     logger.error("Hugging Face API connection failed. No response received.")
             except Exception as d_err:
                 logger.error(f"Error calling Hugging Face Zero-Shot Detection API: {d_err}", exc_info=True)

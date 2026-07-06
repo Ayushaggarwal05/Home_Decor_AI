@@ -1,19 +1,22 @@
 services:
-  web:
+  backend-web:
     build: .
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - .:/workspace
-      - /workspace/venv  # Anonymous volume masking host venv from polluting container env
+      - /workspace/venv # Anonymous volume masking host venv from polluting container env
     env_file:
       - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 1000M
     depends_on:
       db:
@@ -21,17 +24,18 @@ services:
       redis:
         condition: service_started
 
-  worker:
+  backend-worker:
     build: .
     restart: unless-stopped
     volumes:
       - .:/workspace
-      - /workspace/venv  # Anonymous volume masking host venv from polluting container env
+      - /workspace/venv # Anonymous volume masking host venv from polluting container env
       - hf_cache:/root/.cache/huggingface
     env_file:
       - .env
     dns:
-      - 10.255.255.254
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - OMP_NUM_THREADS=2
       - MKL_NUM_THREADS=2
@@ -42,7 +46,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.0'
+          cpus: "4.0"
           memory: 3000M
     depends_on:
       db:
@@ -64,7 +68,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 500M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U homedecor_user -d homedecor_db"]
@@ -80,7 +84,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 250M
 
 volumes:

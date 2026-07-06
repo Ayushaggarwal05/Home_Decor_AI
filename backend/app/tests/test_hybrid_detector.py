@@ -64,7 +64,7 @@ class TestHybridDetector(unittest.TestCase):
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0]["label"], "Chair")
 
-    @patch("app.ai.detection.detector.requests.post")
+    @patch("app.ai.detection.detector.InferenceClient._inner_post")
     @patch("app.ai.detection.detector.YOLO")
     def test_mocked_hybrid_pipeline(self, mock_yolo, mock_post) -> None:
         """Verify full pipeline runs and performs fusion under mocked model outputs."""
@@ -89,10 +89,9 @@ class TestHybridDetector(unittest.TestCase):
         mock_result.boxes = [mock_box]
         mock_yolo_instance.return_value = [mock_result]
         
-        # Setup requests.post mock for serverless zero-shot API
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = [
+        # Setup InferenceClient._inner_post mock for serverless zero-shot API
+        import json
+        mock_post.return_value = json.dumps([
             {
                 "score": 0.7,
                 "label": "armchair",
@@ -103,12 +102,11 @@ class TestHybridDetector(unittest.TestCase):
                     "ymax": 90.0
                 }
             }
-        ]
-        mock_post.return_value = mock_response
+        ]).encode('utf-8')
         
         # Initialize detector with mock configuration under patched HF settings
         from app.core.config import settings
-        with patch.object(settings, "HF_TOKEN", "mock_token"):
+        with patch.object(settings, "HF_TOKEN", "mock_token"), patch.object(settings, "DINO_API_MODEL", "google/owlv2-base-patch16-ensemble"):
             detector = YOLOv8Detector(
                 weights_path="mock_yolo.pt",
                 yolo_weight=0.6,
