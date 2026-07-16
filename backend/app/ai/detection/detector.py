@@ -215,13 +215,17 @@ def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshol
             k_box = k_det["boundingBox"]
             iou = compute_bounding_box_intersection_ratio(box, k_box)
             if iou > iou_threshold:
-                # Check subclass matches (e.g. Chair and Armchair overlapping)
+                # Check subclass matches or very high overlap indicating same physical object
                 lbl1, lbl2 = det["label"].lower(), k_det["label"].lower()
                 is_similar_class = (
                     lbl1 == lbl2 or
                     ("chair" in lbl1 and "chair" in lbl2) or
                     ("sofa" in lbl1 and "sofa" in lbl2) or
-                    ("table" in lbl1 and "table" in lbl2)
+                    ("table" in lbl1 and "table" in lbl2) or
+                    # Bed and Sofa overlap conflict
+                    (sorted([lbl1, lbl2]) == ["bed", "sofa"]) or
+                    # Always suppress if overlap is extremely high (indicating same physical object)
+                    iou > 0.75
                 )
                 if is_similar_class:
                     overlap = True
