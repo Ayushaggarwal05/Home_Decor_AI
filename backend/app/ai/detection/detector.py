@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+import re
 from typing import List, Dict, Any, Tuple, Optional
 import cv2
 import numpy as np
@@ -63,19 +64,55 @@ def safe_float_from_val(val: Any) -> float:
 
 def extract_json_from_text(text: str) -> str:
     """
-    Extract the first JSON block (array or object) from conversational or code-blocked text.
+    Extract and clean the first JSON block (array or object) from conversational or code-blocked text.
+    Resiliently handles common VLM JSON syntax discrepancies.
     """
+    json_str = text
     # Find first '[' and last ']'
     start_idx = text.find('[')
     end_idx = text.rfind(']')
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        return text[start_idx:end_idx+1]
-    # Fallback to finding first '{' and last '}'
-    start_idx = text.find('{')
-    end_idx = text.rfind('}')
-    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        return text[start_idx:end_idx+1]
-    return text
+        json_str = text[start_idx:end_idx+1]
+    else:
+        # Fallback to finding first '{' and last '}'
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            json_str = text[start_idx:end_idx+1]
+            
+    # Clean up common VLM JSON syntax discrepancies
+    try:
+        # 0. Fix VLM backslash keys (e.g. \xmin -> "xmin", \ymin -> "ymin") at the very start
+        json_str = json_str.replace("\\xmin", '"xmin"').replace("\\ymin", '"ymin"').replace("\\xmax", '"xmax"').replace("\\ymax", '"ymax"')
+
+        # 1. Remove comments
+        json_str = re.sub(r'(?:^|[^:])//.*$', '', json_str, flags=re.MULTILINE)
+        json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
+        
+        # 2. Fix missing commas between list elements: } { -> }, {
+        json_str = re.sub(r'\}\s*([\r\n]*)\s*\{', r'},\1{', json_str)
+        
+        # 3. Fix missing commas between nested arrays: ] [ -> ], [
+        json_str = re.sub(r'\]\s*([\r\n]*)\s*\[', r'],\1[', json_str)
+        
+        # 4. Remove trailing commas before closing braces/brackets
+        json_str = re.sub(r',\s*([\}\]])', r'\1', json_str)
+        
+        # 5. Fix missing commas between key-value pairs (e.g. "xmin": 100 "ymin": 100)
+        json_str = re.sub(r'(:\s*(?:[0-9.+-]+|true|false|null|"[^"]*"))\s+("[^"]*"\s*:)', r'\1, \2', json_str)
+        
+        # 6. Fix VLM list-dictionary schema confusion (e.g., {"xmin": [100, 200, 300, 400]})
+        json_str = re.sub(r'\{\s*"xmin":\s*\[\s*([0-9.,\s-]+)\s*\]?\s*\}', r'[\1]', json_str)
+        
+        # 7. Clean up extra closing curly braces at the end of dictionary items (e.g. }}} -> }})
+        json_str = re.sub(r'\}\s*\}\s*\}\s*([\s,\]])', r'}}\1', json_str)
+        
+        # 8. Fix VLM missing quotes on keys (e.g., ymin: 100 -> "ymin": 100, ymin": 100 -> "ymin": 100)
+        json_str = re.sub(r'"?\b(xmin|ymin|xmax|ymax|label|score|box)\b"?\s*:', r'"\1":', json_str)
+    except Exception as e:
+        logger.warning(f"Error executing JSON cleanup regex: {e}")
+        
+    return json_str
 
 
 class ModelRegistry:
@@ -105,6 +142,10 @@ def map_label_to_canonical(label: str) -> str:
         "sideboard": "Sideboard",
         "armchair": "Armchair",
         "cabinet": "Sideboard",
+        "cupboard": "Cupboard",
+        "wardrobe": "Wardrobe",
+        "chest of drawers": "Sideboard",
+        "nightstand": "Nightstand",
         "window": "Window",
         "chair": "Chair",
         "couch": "Sofa",
@@ -234,6 +275,35 @@ def check_size_plausibility(label: str, bbox: Dict[str, float]) -> bool:
     return True
 
 
+def compute_box_containment_ratio(boxA: Dict[str, Any], boxB: Dict[str, Any]) -> float:
+    """
+    Calculates the ratio of the intersection area to the area of the smaller box.
+    A ratio close to 1.0 means one box is almost entirely inside the other.
+    """
+    x1_A, y1_A = float(boxA['x']), float(boxA['y'])
+    w_A, h_A = float(boxA['width']), float(boxA['height'])
+    x1_B, y1_B = float(boxB['x']), float(boxB['y'])
+    w_B, h_B = float(boxB['width']), float(boxB['height'])
+    
+    x2_A, y2_A = x1_A + w_A, y1_A + h_A
+    x2_B, y2_B = x1_B + w_B, y1_B + h_B
+    
+    xA = max(x1_A, x1_B)
+    yA = max(y1_A, y1_B)
+    xB = min(x2_A, x2_B)
+    yB = min(y2_A, y2_B)
+    
+    inter_area = max(0.0, xB - xA) * max(0.0, yB - yA)
+    if inter_area <= 0.0:
+        return 0.0
+        
+    area_A = w_A * h_A
+    area_B = w_B * h_B
+    smaller_area = min(area_A, area_B)
+    
+    return inter_area / smaller_area if smaller_area > 0 else 0.0
+
+
 def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshold: float = 0.5) -> List[Dict[str, Any]]:
     """
     Non-Maximum Suppression (NMS) designed specifically to remove duplicate or highly 
@@ -245,50 +315,83 @@ def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshol
     for det in sorted_dets:
         box = det["boundingBox"]
         overlap = False
+        lbl_curr = det["label"].lower()
+        
         for k_det in kept:
             k_box = k_det["boundingBox"]
+            lbl_kept = k_det["label"].lower()
+            
             iou = compute_bounding_box_intersection_ratio(box, k_box)
-            if iou > iou_threshold:
-                # Check subclass matches or very high overlap indicating same physical object
-                lbl1, lbl2 = det["label"].lower(), k_det["label"].lower()
-                
-                # Physically incompatible classes shouldn't overlap heavily
-                is_incompatible_overlap = False
-                if iou > 0.45:
-                    # Exceptions where overlap is physically possible:
-                    # 1. Chair tucked under Table or Desk
-                    is_tucked_chair = (
-                        ("chair" in lbl1 and "table" in lbl2) or
-                        ("chair" in lbl2 and "table" in lbl1) or
-                        ("chair" in lbl1 and "desk" in lbl2) or
-                        ("chair" in lbl2 and "desk" in lbl1)
-                    )
-                    # 2. Structural elements (Window/Door) can overlap with curtains, plants, etc.
-                    is_structural = (
-                        "window" in lbl1 or "window" in lbl2 or
-                        "door" in lbl1 or "door" in lbl2
-                    )
-                    if not is_tucked_chair and not is_structural:
-                        is_incompatible_overlap = True
-
-                is_similar_class = (
-                    lbl1 == lbl2 or
-                    ("chair" in lbl1 and "chair" in lbl2) or
-                    ("sofa" in lbl1 and "sofa" in lbl2) or
-                    ("table" in lbl1 and "table" in lbl2) or
-                    # Bed and Sofa overlap conflict
-                    (sorted([lbl1, lbl2]) == ["bed", "sofa"]) or
-                    is_incompatible_overlap or
-                    # Always suppress if overlap is extremely high (indicating same physical object)
-                    iou > 0.75
+            containment = compute_box_containment_ratio(box, k_box)
+            
+            # physically incompatible nested items conflict
+            is_contained_conflict = False
+            if containment > 0.8:
+                # e.g., coffee table inside a bed, sideboard, or sofa
+                # door inside sideboard (wardrobe door false detection) or door inside bed
+                labels_sorted = sorted([lbl_curr, lbl_kept])
+                if (labels_sorted == ["bed", "coffee table"]) or \
+                   (labels_sorted == ["bed", "sofa"]) or \
+                   (labels_sorted == ["bed", "door"]) or \
+                   (labels_sorted == ["door", "sideboard"]) or \
+                   (labels_sorted == ["door", "wardrobe"]) or \
+                   (labels_sorted == ["door", "cupboard"]) or \
+                   (labels_sorted == ["coffee table", "sofa"]) or \
+                   (labels_sorted == ["bed", "sideboard"]) or \
+                   (labels_sorted == ["bed", "wardrobe"]) or \
+                   (labels_sorted == ["bed", "cupboard"]):
+                    is_contained_conflict = True
+            
+            # Check subclass matches or very high overlap indicating same physical object
+            lbl1, lbl2 = lbl_curr, lbl_kept
+            
+            # Physically incompatible classes shouldn't overlap heavily
+            is_incompatible_overlap = False
+            if iou > 0.45:
+                # Exceptions where overlap is physically possible:
+                # 1. Chair tucked under Table or Desk
+                is_tucked_chair = (
+                    ("chair" in lbl1 and "table" in lbl2) or
+                    ("chair" in lbl2 and "table" in lbl1) or
+                    ("chair" in lbl1 and "desk" in lbl2) or
+                    ("chair" in lbl2 and "desk" in lbl1)
                 )
-                if is_similar_class:
-                    overlap = True
-                    logger.info(
-                        f"NMS Suppressed: Overlap between {det['label']} ({det['confidence']:.2f}) "
-                        f"and {k_det['label']} ({k_det['confidence']:.2f}) with IoU: {iou:.2f}"
-                    )
-                    break
+                # 2. Structural elements (Window/Door) can overlap with curtains, plants, etc.
+                is_structural = (
+                    "window" in lbl1 or "window" in lbl2 or
+                    "door" in lbl1 or "door" in lbl2
+                )
+                
+                # Check for door/window structural overlap conflict:
+                # door overlapping heavily with sideboard/bed is a false detection of wardrobe door or wall
+                is_structural_overlap_conflict = False
+                if iou > 0.4:
+                    if ("door" in lbl1 and lbl2 in ["sideboard", "bed", "sofa"]) or \
+                       ("door" in lbl2 and lbl1 in ["sideboard", "bed", "sofa"]):
+                        is_structural_overlap_conflict = True
+                
+                if (not is_tucked_chair and not is_structural) or is_structural_overlap_conflict:
+                    is_incompatible_overlap = True
+
+            is_similar_class = (
+                lbl1 == lbl2 or
+                ("chair" in lbl1 and "chair" in lbl2) or
+                ("sofa" in lbl1 and "sofa" in lbl2) or
+                ("table" in lbl1 and "table" in lbl2) or
+                # Bed and Sofa overlap conflict
+                (sorted([lbl1, lbl2]) == ["bed", "sofa"]) or
+                is_incompatible_overlap or
+                is_contained_conflict or
+                # Always suppress if overlap is extremely high (indicating same physical object)
+                iou > 0.75
+            )
+            if is_similar_class:
+                overlap = True
+                logger.info(
+                    f"NMS Suppressed: Overlap/Containment between {det['label']} ({det['confidence']:.2f}) "
+                    f"and {k_det['label']} ({k_det['confidence']:.2f}) with IoU: {iou:.2f}, Containment: {containment:.2f}"
+                )
+                break
         if not overlap:
             kept.append(det)
 
@@ -336,15 +439,17 @@ class YOLOv8Detector:
         self.classes = {
             0: "Sofa", 1: "Coffee Table", 2: "Armchair", 3: "Sideboard",
             4: "Bed", 5: "Desk", 6: "Bookshelf", 7: "Door", 8: "Window",
-            9: "Dining Table", 10: "Chair", 11: "Potted Plant"
+            9: "Dining Table", 10: "Chair", 11: "Wardrobe", 12: "Cupboard",
+            13: "Nightstand"
         }
         self.label_to_class_id = {v: k for k, v in self.classes.items()}
 
         # Prompts specifically targeted for indoor room object grounding
         self.dino_prompts = [
             "sofa", "couch", "bed", "dining table", "coffee table", "side table",
-            "chair", "desk", "bookshelf", "cabinet", "sideboard", "potted plant",
-            "TV console", "door", "window"
+            "chair", "desk", "bookshelf", "cabinet", "sideboard",
+            "TV console", "door", "window", "cupboard", "wardrobe", "nightstand",
+            "chest of drawers"
         ]
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -422,7 +527,8 @@ class YOLOv8Detector:
     def detect_furniture(
         self, 
         image_bytes: bytes, 
-        resize_to: Optional[Tuple[int, int]] = None
+        resize_to: Optional[Tuple[int, int]] = None,
+        space_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Runs object detection inferences over raw image bytes using the hybrid pipeline.
@@ -510,8 +616,8 @@ class YOLOv8Detector:
                                     if raw_name in coco_mapping:
                                         label = coco_mapping[raw_name]
 
-                            if not label:
-                                # Skip non-furniture or unmapped classes (e.g. person, car, stopsign, train)
+                            if not label or label in ["Potted Plant", "Vase"]:
+                                # Skip non-furniture or unmapped/decor classes
                                 continue
 
                             bbox = {
@@ -561,25 +667,27 @@ class YOLOv8Detector:
                 wait_time = 5.0
                 
                 if is_vlm:
+                    context_hint = ""
+                    if space_type:
+                        clean_space = space_type.replace("_", " ").title()
+                        context_hint = f"CONTEXT: The image is a scan of a {clean_space}.\nFocus extra attention on detecting common items for this space type (e.g. bookshelves, desks, cupboards, wardrobes, or nightstands if present).\n"
+                        
                     prompt = (
                         f"Perform zero-shot object detection on this image for candidate labels: {self.dino_prompts}.\n"
-                        f"Return a JSON array of objects. Each object MUST strictly follow this dictionary format:\n"
+                        f"{context_hint}"
+                        f"Return a JSON array of objects. Each object MUST strictly follow this format:\n"
                         f"{{\n"
                         f"  \"score\": 0.95,\n"
                         f"  \"label\": \"chair\",\n"
-                        f"  \"box\": {{\n"
-                        f"    \"xmin\": 100,\n"
-                        f"    \"ymin\": 100,\n"
-                        f"    \"xmax\": 300,\n"
-                        f"    \"ymax\": 300\n"
-                        f"  }}\n"
+                        f"  \"box\": [xmin, ymin, xmax, ymax]\n"
                         f"}}\n"
-                        f"Use pixel coordinates based on the image size of {image_width}x{image_height}.\n"
-                        f"Ensure 'box' is a JSON object/dictionary, NOT a list.\n"
+                        f"Return coordinates normalized to a [0, 1000] scale (where 1000 represents the full width/height of the image).\n"
+                        f"Ensure 'box' is a JSON list of 4 integers: [xmin, ymin, xmax, ymax]. Do not write 'xmin', 'ymin', 'xmax', or 'ymax' keys.\n"
                         f"CRITICAL INSTRUCTIONS:\n"
                         f"- Be extremely conservative and precise. Do not guess or hallucinate objects.\n"
                         f"- Only detect objects that are clearly and unambiguously present.\n"
-                        f"- Do NOT detect daybeds, single beds, or blankets as a 'sofa' or 'couch'.\n"
+                        f"- Pay close attention to structural and storage elements like bookshelves, desks, cupboards, wardrobes, nightstands, and doors/windows as the primary detector misses them.\n"
+                        f"- Do NOT detect daybeds or blankets as a 'sofa' or 'couch'.\n"
                         f"- Do NOT detect laptop stands, trays, or lapdesks as a 'coffee table' or 'dining table'.\n"
                         f"Output ONLY the raw JSON array. No markdown code blocks, no other text."
                     )
@@ -601,6 +709,7 @@ class YOLOv8Detector:
                                 max_tokens=1000
                             )
                             content = response.choices[0].message.content.strip()
+                            print(f"RAW VLM RESPONSE: {content}")
                             json_str = extract_json_from_text(content)
                             import json
                             api_results = json.loads(json_str)
@@ -695,18 +804,37 @@ class YOLOv8Detector:
                                 val_1 = safe_float_from_val(box[1])
                                 val_2 = safe_float_from_val(box[2])
                                 val_3 = safe_float_from_val(box[3])
-                                y1, x1, y2, x2 = val_0, val_1, val_2, val_3
+                                
+                                # For VLM list format [xmin, ymin, xmax, ymax]
+                                if is_vlm:
+                                    x1, y1, x2, y2 = val_0, val_1, val_2, val_3
+                                else:
+                                    y1, x1, y2, x2 = val_0, val_1, val_2, val_3
+                                    
                                 if x1 > x2:
                                     x1, x2 = x2, x1
                                 if y1 > y2:
                                     y1, y2 = y2, y1
                                     
-                            # If VLM returned normalized coordinates [0, 1] instead of raw pixels, scale them up
-                            if x1 <= 1.0 and y1 <= 1.0 and x2 <= 1.0 and y2 <= 1.0:
+                            # If VLM returned coordinates on [0, 1000] scale, normalize them to [0, 1] first
+                            if is_vlm and (x1 > 1.0 or y1 > 1.0 or x2 > 1.0 or y2 > 1.0):
+                                x1 /= 1000.0
+                                y1 /= 1000.0
+                                x2 /= 1000.0
+                                y2 /= 1000.0
+                                
+                                # Now scale them to pixel dimensions so the below percentage logic works correctly
                                 x1 *= image_width
                                 y1 *= image_height
                                 x2 *= image_width
                                 y2 *= image_height
+                            else:
+                                # Legacy [0, 1] scaling
+                                if x1 <= 1.0 and y1 <= 1.0 and x2 <= 1.0 and y2 <= 1.0:
+                                    x1 *= image_width
+                                    y1 *= image_height
+                                    x2 *= image_width
+                                    y2 *= image_height
                             
                             # Normalize to room percentage coordinate scale
                             x = max(0.0, min(100.0, (x1 / image_width) * 100.0))
@@ -724,6 +852,10 @@ class YOLOv8Detector:
                                 logger.info(f"Skipping DINO detection '{label_str}' due to implausible bounding box size: {bbox}")
                                 continue
                             
+                            canonical_label = map_label_to_canonical(label_str)
+                            if canonical_label in ["Potted Plant", "Vase"]:
+                                continue
+                                
                             dino_detections.append({
                                 "label": label_str,
                                 "confidence": score,

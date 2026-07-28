@@ -79,7 +79,7 @@ def run_spatial_analysis_task(self, room_id: int) -> int:
 
         # 1. Object detections
         detector = DetectionModelInterface()
-        detected_items = detector.predict_objects(image_bytes)
+        detected_items = detector.predict_objects(image_bytes, space_type=room.space_type)
         
         # Average physical dimensions for typical furniture items (width, depth, height) in ft
         AVG_DIMENSIONS = {

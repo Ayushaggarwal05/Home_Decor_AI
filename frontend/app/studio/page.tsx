@@ -74,6 +74,7 @@ export default function StudioPage() {
     "Matter OS v1.0.0 Online",
     "Ready for spatial scanning instructions"
   ]);
+  const [visibleCount, setVisibleCount] = React.useState(6);
 
   // Fetch rooms from backend
   const { data: fetchedRooms, isLoading } = useQuery({
@@ -238,12 +239,25 @@ export default function StudioPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {activeRooms.map((room, index) => (
-                  <div key={room.id} className="group relative">
-                    <RoomCard room={room} delay={0.1 + index * 0.05} />
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeRooms.slice(0, visibleCount).map((room, index) => (
+                    <div key={room.id} className="group relative">
+                      <RoomCard room={room} delay={0.1 + index * 0.05} />
+                    </div>
+                  ))}
+                </div>
+                {activeRooms.length > visibleCount && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => setVisibleCount((prev) => prev + 3)}
+                      className="px-6 py-2.5 bg-white/5 border border-white/10 hover:border-white/20 text-slate-200 hover:text-white text-xs font-bold rounded-2xl flex items-center space-x-1.5 shadow-md transition-all cursor-pointer hover:bg-white/10"
+                    >
+                      <span>Show More Spaces</span>
+                      <span className="text-[10px] text-muted-foreground">({activeRooms.length - visibleCount} remaining)</span>
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </section>

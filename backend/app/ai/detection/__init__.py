@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from app.ai.detection.detector import YOLOv8Detector
 
 class DetectionModelInterface:
@@ -11,13 +11,13 @@ class DetectionModelInterface:
         """Initialize and cache model weight parameters from cloud storages."""
         self.detector.load_model()
 
-    def predict_objects(self, image_bytes: bytes) -> List[Tuple[str, float, List[float]]]:
+    def predict_objects(self, image_bytes: bytes, space_type: Optional[str] = None) -> List[Tuple[str, float, List[float]]]:
         """
         Receives raw image bytes and predicts object bounding coordinates.
         Returns:
             List of tuples: (label, confidence, [x, y, width, height])
         """
-        detections = self.detector.detect_furniture(image_bytes)
+        detections = self.detector.detect_furniture(image_bytes, space_type=space_type)
         return [
             (d["label"], d["confidence"], [
                 d["boundingBox"]["x"],
