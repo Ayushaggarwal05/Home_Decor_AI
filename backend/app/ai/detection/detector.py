@@ -96,26 +96,33 @@ def map_label_to_canonical(label: str) -> str:
     """
     lbl_lower = label.lower().strip()
     mapping = {
-        "sofa": "Sofa",
-        "couch": "Sofa",
-        "bed": "Bed",
         "dining table": "Dining Table",
         "coffee table": "Coffee Table",
-        "side table": "Coffee Table",
-        "chair": "Chair",
-        "desk": "Desk",
-        "bookshelf": "Bookshelf",
-        "cabinet": "Sideboard",
-        "sideboard": "Sideboard",
         "potted plant": "Potted Plant",
         "tv console": "Sideboard",
-        "door": "Door",
+        "side table": "Coffee Table",
+        "bookshelf": "Bookshelf",
+        "sideboard": "Sideboard",
+        "armchair": "Armchair",
+        "cabinet": "Sideboard",
         "window": "Window",
-        "armchair": "Armchair"
+        "chair": "Chair",
+        "couch": "Sofa",
+        "sofa": "Sofa",
+        "door": "Door",
+        "desk": "Desk",
+        "bed": "Bed"
     }
+    # Check exact match first to prevent substring collisions (e.g. "chair" matching "armchair")
     for key, val in mapping.items():
-        if key == lbl_lower or key in lbl_lower or lbl_lower in key:
+        if key == lbl_lower:
             return val
+            
+    # Check substring containment (ordered by descending length)
+    for key, val in sorted(mapping.items(), key=lambda x: len(x[0]), reverse=True):
+        if key in lbl_lower or lbl_lower in key:
+            return val
+            
     return label.capitalize()
 
 
@@ -200,6 +207,33 @@ def calculate_room_relevance_score(label: str) -> float:
     return 0.6
 
 
+def check_size_plausibility(label: str, bbox: Dict[str, float]) -> bool:
+    """
+    Checks if the bounding box dimensions (in percentage of image) are plausible 
+    for the detected class to filter out micro-hallucinations from zero-shot detectors.
+    """
+    lbl = label.lower()
+    w, h = bbox["width"], bbox["height"]
+    
+    # Tiny boxes (less than 3% in either dimension) are rarely main furniture items
+    if w < 3.0 or h < 3.0:
+        if lbl in ["sofa", "bed", "dining table", "bookshelf", "sideboard", "desk"]:
+            return False
+            
+    # Bookshelves must have some vertical or horizontal extension
+    if lbl == "bookshelf":
+        if h < 6.0 and w < 6.0:
+            return False
+            
+    # Sofas and beds must be reasonably sized
+    if lbl == "sofa" and w < 6.0:
+        return False
+    if lbl == "bed" and (w < 8.0 or h < 8.0):
+        return False
+        
+    return True
+
+
 def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshold: float = 0.5) -> List[Dict[str, Any]]:
     """
     Non-Maximum Suppression (NMS) designed specifically to remove duplicate or highly 
@@ -217,6 +251,26 @@ def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshol
             if iou > iou_threshold:
                 # Check subclass matches or very high overlap indicating same physical object
                 lbl1, lbl2 = det["label"].lower(), k_det["label"].lower()
+                
+                # Physically incompatible classes shouldn't overlap heavily
+                is_incompatible_overlap = False
+                if iou > 0.45:
+                    # Exceptions where overlap is physically possible:
+                    # 1. Chair tucked under Table or Desk
+                    is_tucked_chair = (
+                        ("chair" in lbl1 and "table" in lbl2) or
+                        ("chair" in lbl2 and "table" in lbl1) or
+                        ("chair" in lbl1 and "desk" in lbl2) or
+                        ("chair" in lbl2 and "desk" in lbl1)
+                    )
+                    # 2. Structural elements (Window/Door) can overlap with curtains, plants, etc.
+                    is_structural = (
+                        "window" in lbl1 or "window" in lbl2 or
+                        "door" in lbl1 or "door" in lbl2
+                    )
+                    if not is_tucked_chair and not is_structural:
+                        is_incompatible_overlap = True
+
                 is_similar_class = (
                     lbl1 == lbl2 or
                     ("chair" in lbl1 and "chair" in lbl2) or
@@ -224,6 +278,7 @@ def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshol
                     ("table" in lbl1 and "table" in lbl2) or
                     # Bed and Sofa overlap conflict
                     (sorted([lbl1, lbl2]) == ["bed", "sofa"]) or
+                    is_incompatible_overlap or
                     # Always suppress if overlap is extremely high (indicating same physical object)
                     iou > 0.75
                 )
@@ -431,31 +486,49 @@ class YOLOv8Detector:
                             width = max(0.0, min(100.0 - x, ((x2 - x1) / image_width) * 100.0))
                             height = max(0.0, min(100.0 - y, ((y2 - y1) / image_height) * 100.0))
 
-                            label = self.classes.get(cls_id)
-                            if not label and hasattr(self.model, "names") and cls_id in self.model.names:
-                                raw_name = self.model.names[cls_id]
-                                coco_mapping = {
-                                    "couch": "Sofa",
-                                    "dining table": "Dining Table",
-                                    "chair": "Chair",
-                                    "potted plant": "Potted Plant",
-                                    "bed": "Bed"
-                                }
-                                label = coco_mapping.get(raw_name.lower(), raw_name.capitalize())
+                            # Determine if model is standard COCO or custom trained
+                            is_coco = False
+                            if hasattr(self.model, "names") and isinstance(self.model.names, dict) and len(self.model.names) > 0:
+                                if self.model.names.get(0, "").lower() == "person":
+                                    is_coco = True
+
+                            label = None
+                            if not is_coco:
+                                label = self.classes.get(cls_id)
+                            else:
+                                if hasattr(self.model, "names") and cls_id in self.model.names:
+                                    raw_name = self.model.names[cls_id].lower()
+                                    coco_mapping = {
+                                        "couch": "Sofa",
+                                        "dining table": "Dining Table",
+                                        "chair": "Chair",
+                                        "potted plant": "Potted Plant",
+                                        "bed": "Bed",
+                                        "vase": "Vase",
+                                        "tv": "TV Console"
+                                    }
+                                    if raw_name in coco_mapping:
+                                        label = coco_mapping[raw_name]
 
                             if not label:
-                                label = "Object"
+                                # Skip non-furniture or unmapped classes (e.g. person, car, stopsign, train)
+                                continue
+
+                            bbox = {
+                                "x": round(x, 2),
+                                "y": round(y, 2),
+                                "width": round(width, 2),
+                                "height": round(height, 2)
+                            }
+                            if not check_size_plausibility(label, bbox):
+                                logger.info(f"Skipping YOLO detection '{label}' due to implausible bounding box size: {bbox}")
+                                continue
 
                             yolo_detections.append({
                                 "label": label,
                                 "classId": cls_id,
                                 "confidence": conf,
-                                "boundingBox": {
-                                    "x": round(x, 2),
-                                    "y": round(y, 2),
-                                    "width": round(width, 2),
-                                    "height": round(height, 2)
-                                }
+                                "boundingBox": bbox
                             })
             except Exception as y_err:
                 logger.error(f"Error executing YOLOv8 inference pipeline: {y_err}", exc_info=True)
@@ -641,15 +714,20 @@ class YOLOv8Detector:
                             width = max(0.0, min(100.0 - x, ((x2 - x1) / image_width) * 100.0))
                             height = max(0.0, min(100.0 - y, ((y2 - y1) / image_height) * 100.0))
                             
+                            bbox = {
+                                "x": round(x, 2),
+                                "y": round(y, 2),
+                                "width": round(width, 2),
+                                "height": round(height, 2)
+                            }
+                            if not check_size_plausibility(label_str, bbox):
+                                logger.info(f"Skipping DINO detection '{label_str}' due to implausible bounding box size: {bbox}")
+                                continue
+                            
                             dino_detections.append({
                                 "label": label_str,
                                 "confidence": score,
-                                "boundingBox": {
-                                    "x": round(x, 2),
-                                    "y": round(y, 2),
-                                    "width": round(width, 2),
-                                    "height": round(height, 2)
-                                }
+                                "boundingBox": bbox
                             })
                     else:
                         logger.error(f"Hugging Face API returned unexpected structure: {api_results}")

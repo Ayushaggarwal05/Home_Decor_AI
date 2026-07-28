@@ -42,19 +42,19 @@ export default function DetectionOverlay({ detections }: DetectionOverlayProps) 
                 width: `${det.boundingBox.width}%`,
                 height: `${det.boundingBox.height}%`,
                 boxShadow: isAnchoredWarning 
-                  ? '0 0 16px rgba(244, 63, 94, 0.25)' 
+                  ? '0 0 16px rgba(245, 158, 11, 0.25)' 
                   : '0 0 12px rgba(6, 182, 212, 0.15)',
-                borderColor: isAnchoredWarning ? 'rgba(244, 63, 94, 0.6)' : 'rgba(6, 182, 212, 0.6)',
+                borderColor: isAnchoredWarning ? 'rgba(245, 158, 11, 0.6)' : 'rgba(6, 182, 212, 0.6)',
               }}
             >
               {/* Tag Badge */}
               <div className="self-start pointer-events-none">
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-white font-bold text-[9px] uppercase tracking-wider translate-x-[-1px] translate-y-[-18px] shadow-md border whitespace-nowrap ${
                   isAnchoredWarning 
-                    ? 'bg-rose-500/90 border-rose-300/30' 
+                    ? 'bg-amber-500/90 border-amber-300/30' 
                     : 'bg-cyan-500/90 border-cyan-300/30'
                 }`}>
-                  {det.label} <span className="ml-1 opacity-70">{(det.confidence * 100).toFixed(0)}%</span>
+                  {isAnchoredWarning ? '⚠️ ' : ''}{det.label} <span className="ml-1 opacity-70">{(det.confidence * 100).toFixed(0)}%</span>
                 </span>
               </div>
               
@@ -81,7 +81,7 @@ export default function DetectionOverlay({ detections }: DetectionOverlayProps) 
                       )}
                       
                       {isAnchoredWarning && (
-                        <div className="text-[8px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-1 rounded-xl font-bold uppercase tracking-wider animate-pulse flex items-center gap-1 justify-center mt-1">
+                        <div className="text-[8px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-1 rounded-xl font-bold uppercase tracking-wider animate-pulse flex items-center gap-1 justify-center mt-1">
                           <span>⚠️ Not Anchored to Wall</span>
                         </div>
                       )}
@@ -91,10 +91,10 @@ export default function DetectionOverlay({ detections }: DetectionOverlayProps) 
               </AnimatePresence>
 
               {/* Frame corners styling for premium computer vision look */}
-              <div className={`absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 rounded-tl-md ${isAnchoredWarning ? 'border-rose-400' : 'border-cyan-400'}`} />
-              <div className={`absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 rounded-tr-md ${isAnchoredWarning ? 'border-rose-400' : 'border-cyan-400'}`} />
-              <div className={`absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 rounded-bl-md ${isAnchoredWarning ? 'border-rose-400' : 'border-cyan-400'}`} />
-              <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 rounded-br-md ${isAnchoredWarning ? 'border-rose-400' : 'border-cyan-400'}`} />
+              <div className={`absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 rounded-tl-md ${isAnchoredWarning ? 'border-amber-400' : 'border-cyan-400'}`} />
+              <div className={`absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 rounded-tr-md ${isAnchoredWarning ? 'border-amber-400' : 'border-cyan-400'}`} />
+              <div className={`absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 rounded-bl-md ${isAnchoredWarning ? 'border-amber-400' : 'border-cyan-400'}`} />
+              <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 rounded-br-md ${isAnchoredWarning ? 'border-amber-400' : 'border-cyan-400'}`} />
             </motion.div>
           );
         })}
