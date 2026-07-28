@@ -1,6 +1,6 @@
-# 🧠 Aura AI — Backend API
+# 🧠 Matter AI — Backend API
 
-> **FastAPI + Python backend** for the Aura AI Interior Design & Space Optimization SaaS platform. Powers spatial intelligence, room analysis, layout optimization, generative redesign, and all data persistence.
+> **FastAPI + Python backend** for the Matter AI Interior Design & Space Optimization SaaS platform. Powers spatial intelligence, room analysis, layout optimization, generative redesign, and all data persistence.
 
 ---
 

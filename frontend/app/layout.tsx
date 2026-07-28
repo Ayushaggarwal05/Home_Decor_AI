@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Aura AI — Spatial Intelligence & Interior Design Optimization SaaS',
+  title: 'Matter AI — Spatial Intelligence & Interior Design Optimization SaaS',
   description: 'High-fidelity spatial analysis, occupancy heatmaps, and Generative AI room optimization dashboard for modern homes and commercial spaces.',
   keywords: ['AI Interior Design', 'Spatial Analysis', 'Room Layout Optimization', 'Computer Vision SaaS', 'Japandi Design'],
 };

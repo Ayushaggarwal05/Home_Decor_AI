@@ -34,7 +34,7 @@ export default function Navbar() {
       case 'redesign': return 'AI Redesign';
       case 'compare': return 'Compare Studio';
       case 'settings': return 'Environment';
-      default: return 'Aura Workspace';
+      default: return 'Matter Workspace';
     }
   };
 
@@ -62,7 +62,7 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:block">
             <h1 className="text-sm font-black tracking-widest text-slate-100 uppercase">
-              Aura AI
+              Matter AI
             </h1>
             <p className="text-[8px] text-cyan-400 tracking-widest uppercase font-semibold leading-none mt-0.5">
               Spatial OS
@@ -202,10 +202,10 @@ export default function Navbar() {
                 >
                   <div className="space-y-1 pb-3 border-b border-white/5">
                     <p className="text-xs font-bold text-slate-100 truncate">
-                      {user?.fullName || 'Aura User'}
+                      {user?.fullName || 'Matter User'}
                     </p>
                     <p className="text-[10px] text-slate-400 truncate">
-                      {user?.email || 'user@aurastudio.ai'}
+                      {user?.email || 'user@matterstudio.ai'}
                     </p>
                     <div className="pt-1">
                       <span className="px-2 py-0.5 text-[8px] bg-violet-500/20 text-violet-300 rounded font-bold border border-violet-500/20 uppercase tracking-widest">

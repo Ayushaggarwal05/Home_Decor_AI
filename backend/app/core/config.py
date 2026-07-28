@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, PostgresDsn, field_validator
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Aura AI Spatial Intelligence API"
+    PROJECT_NAME: str = "Matter AI Spatial Intelligence API"
     ENV: str = "development"
     
     # JWT security parameters

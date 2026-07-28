@@ -72,7 +72,7 @@ export default function Sidebar() {
             </div>
             <div>
               <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                AURA AI
+                MATTER AI
               </h1>
               <p className="text-[10px] text-muted-foreground tracking-wider uppercase font-semibold">
                 Spatial Intelligence
@@ -122,7 +122,7 @@ export default function Sidebar() {
             </div>
             <div className="overflow-hidden flex-1">
               <p className="text-xs font-semibold text-foreground truncate">
-                {user?.fullName || user?.email || 'Aura User'}
+                {user?.fullName || user?.email || 'Matter User'}
               </p>
               <p className="text-[10px] text-muted-foreground truncate">{user?.email ?? ''}</p>
             </div>

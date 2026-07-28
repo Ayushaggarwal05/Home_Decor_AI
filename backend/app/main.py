@@ -27,7 +27,7 @@ setup_logging()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="Aura AI Spatial Intelligence & Optimization backend orchestration engine.",
+    description="Matter AI Spatial Intelligence & Optimization backend orchestration engine.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",

@@ -1,12 +1,12 @@
-# 🏠 Aura AI — Interior Design & Space Optimization SaaS
+# 🏠 Matter AI — Interior Design & Space Optimization SaaS
 
 > **AI-powered spatial intelligence platform** that analyzes room layouts, generates optimization scores, and produces AI-designed room concepts using computer vision and generative AI.
 
 ---
 
-## ✨ What is Aura AI?
+## ✨ What is Matter AI?
 
-Aura AI is a full-stack, research-grade SaaS platform with **two core operational modes**:
+Matter AI is a full-stack, research-grade SaaS platform with **two core operational modes**:
 
 | Mode                       | Description                                                                                                                                                 |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

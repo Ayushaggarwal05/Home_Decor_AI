@@ -16,7 +16,7 @@ export default function GlobalLoading() {
       </div>
 
       <div className="text-center space-y-1 z-10">
-        <h4 className="text-sm font-bold text-foreground">Syncing Aura Workspace</h4>
+        <h4 className="text-sm font-bold text-foreground">Syncing Matter Workspace</h4>
         <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
           Loading layout states
         </p>

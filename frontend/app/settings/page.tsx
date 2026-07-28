@@ -65,7 +65,7 @@ export default function SettingsPage() {
                     : user?.email?.slice(0, 2).toUpperCase() ?? 'AU'}
                 </div>
                 <div>
-                  <h5 className="font-bold text-sm text-foreground">{user.fullName || 'Aura User'}</h5>
+                  <h5 className="font-bold text-sm text-foreground">{user.fullName || 'Matter User'}</h5>
                   <p className="text-xs text-slate-400">{user.email}</p>
                 </div>
                 <div className="ml-auto">
@@ -142,7 +142,7 @@ export default function SettingsPage() {
           <div className="p-4 bg-primary/5 border border-primary/10 rounded-3xl flex items-start space-x-3 text-xs text-muted-foreground">
             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <p className="leading-normal">
-              Aura AI coordinates the frontend user interfaces and API orchestration pipelines. To modify spatial intelligence rules or change Stable Diffusion endpoints, modify environment variables inside <strong className="text-white">.env.local</strong>.
+              Matter AI coordinates the frontend user interfaces and API orchestration pipelines. To modify spatial intelligence rules or change Stable Diffusion endpoints, modify environment variables inside <strong className="text-white">.env.local</strong>.
             </p>
           </div>
         </div>

@@ -71,7 +71,7 @@ export default function StudioPage() {
   const { user } = useAuthStore();
   const [activeLog, setActiveLog] = React.useState(0);
   const [logsList, setLogsList] = React.useState<string[]>([
-    "Aura OS v1.0.0 Online",
+    "Matter OS v1.0.0 Online",
     "Ready for spatial scanning instructions"
   ]);
 
@@ -123,7 +123,7 @@ export default function StudioPage() {
               </h1>
 
               <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
-                Welcome to Aura Studio. Initialize a neural audit of your environment, optimize furniture layouts with genetic search parameters, or render AI-powered interior redesign styles in real time.
+                Welcome to Matter Studio. Initialize a neural audit of your environment, optimize furniture layouts with genetic search parameters, or render AI-powered interior redesign styles in real time.
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2">

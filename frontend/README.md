@@ -1,6 +1,6 @@
-# 🎨 Aura AI — Frontend
+# 🎨 Matter AI — Frontend
 
-> **Next.js 15 App Router frontend** for the Aura AI Interior Design & Space Optimization SaaS. Delivers a premium, animation-rich interface for room upload, AI analysis visualization, layout optimization, and generative redesign.
+> **Next.js 15 App Router frontend** for the Matter AI Interior Design & Space Optimization SaaS. Delivers a premium, animation-rich interface for room upload, AI analysis visualization, layout optimization, and generative redesign.
 
 ---
 
