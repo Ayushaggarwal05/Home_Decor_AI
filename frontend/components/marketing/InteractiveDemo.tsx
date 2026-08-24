@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
-import { Sparkles, Eye, Sliders, CheckCircle2, MoveHorizontal, Box, Compass, RefreshCw } from 'lucide-react';
+import { Sparkles, Eye, Compass, MoveHorizontal, Box } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Mock presets data
@@ -41,10 +41,10 @@ const ROOM_PRESETS = [
       },
     },
     boundingBoxes: [
-      { id: 'sofa', label: 'Sofa [98%]', color: 'border-violet-400 bg-violet-500/20 text-violet-300', coords: { top: '35%', left: '15%', width: '45%', height: '35%' } },
-      { id: 'table', label: 'Coffee Table [95%]', color: 'border-cyan-400 bg-cyan-500/20 text-cyan-300', coords: { top: '55%', left: '25%', width: '25%', height: '20%' } },
-      { id: 'chair', label: 'Armchair [92%]', color: 'border-emerald-400 bg-emerald-500/20 text-emerald-300', coords: { top: '40%', left: '68%', width: '22%', height: '28%' } },
-      { id: 'door', label: 'Doorway [Exclusion 0.9m]', color: 'border-amber-400 bg-amber-500/20 text-amber-300', coords: { top: '10%', left: '5%', width: '15%', height: '40%' } },
+      { id: 'sofa', label: 'Sofa [98%]', color: 'border-violet-500 bg-violet-500/20 text-violet-900', coords: { top: '35%', left: '15%', width: '45%', height: '35%' } },
+      { id: 'table', label: 'Coffee Table [95%]', color: 'border-cyan-500 bg-cyan-500/20 text-cyan-900', coords: { top: '55%', left: '25%', width: '25%', height: '20%' } },
+      { id: 'chair', label: 'Armchair [92%]', color: 'border-emerald-500 bg-emerald-500/20 text-emerald-900', coords: { top: '40%', left: '68%', width: '22%', height: '28%' } },
+      { id: 'door', label: 'Doorway [Exclusion 0.9m]', color: 'border-amber-500 bg-amber-500/20 text-amber-900', coords: { top: '10%', left: '5%', width: '15%', height: '40%' } },
     ],
   },
   {
@@ -82,9 +82,9 @@ const ROOM_PRESETS = [
       },
     },
     boundingBoxes: [
-      { id: 'bed', label: 'King Bed [99%]', color: 'border-violet-400 bg-violet-500/20 text-violet-300', coords: { top: '30%', left: '25%', width: '50%', height: '50%' } },
-      { id: 'nightstand_l', label: 'Nightstand L [94%]', color: 'border-cyan-400 bg-cyan-500/20 text-cyan-300', coords: { top: '35%', left: '10%', width: '12%', height: '20%' } },
-      { id: 'nightstand_r', label: 'Nightstand R [93%]', color: 'border-cyan-400 bg-cyan-500/20 text-cyan-300', coords: { top: '35%', left: '78%', width: '12%', height: '20%' } },
+      { id: 'bed', label: 'King Bed [99%]', color: 'border-violet-500 bg-violet-500/20 text-violet-900', coords: { top: '30%', left: '25%', width: '50%', height: '50%' } },
+      { id: 'nightstand_l', label: 'Nightstand L [94%]', color: 'border-cyan-500 bg-cyan-500/20 text-cyan-900', coords: { top: '35%', left: '10%', width: '12%', height: '20%' } },
+      { id: 'nightstand_r', label: 'Nightstand R [93%]', color: 'border-cyan-500 bg-cyan-500/20 text-cyan-900', coords: { top: '35%', left: '78%', width: '12%', height: '20%' } },
     ],
   },
 ];
@@ -102,7 +102,6 @@ export default function InteractiveDemo() {
   const activeRoom = ROOM_PRESETS[selectedRoomIndex];
   const activeStyleData = activeRoom.styles[selectedStyle];
 
-  // Handle slider position change via mouse or touch
   const handleMove = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
@@ -128,30 +127,30 @@ export default function InteractiveDemo() {
     <section className="max-w-6xl mx-auto px-6 py-16 w-full z-10 space-y-8">
       {/* Header section */}
       <div className="text-center space-y-3">
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-semibold text-cyan-400">
+        <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-xs font-bold text-cyan-700">
           <Compass className="h-3.5 w-3.5" />
           <span>Live Interactive Spatial Sandbox</span>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
           Experience Spatial Intelligence In Action
         </h2>
-        <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto">
+        <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto">
           Drag the slider to compare original scans with restyled concepts, toggle computer vision detection overlays, and switch interior design presets in real time.
         </p>
       </div>
 
-      {/* Control Bar: Room Tabs, Style Switches, Vision Toggle */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border border-white/10 shadow-2xl">
+      {/* Control Bar */}
+      <div className="bg-white p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-200 shadow-lg shadow-slate-200/50">
         {/* Room Presets Tabs */}
-        <div className="flex items-center space-x-2 bg-slate-900/60 p-1 rounded-xl border border-white/5 w-full md:w-auto overflow-x-auto">
+        <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full md:w-auto overflow-x-auto">
           {ROOM_PRESETS.map((room, idx) => (
             <button
               key={room.id}
               onClick={() => setSelectedRoomIndex(idx)}
               className={`px-4 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                 selectedRoomIndex === idx
-                  ? 'bg-violet-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  ? 'bg-violet-600 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
             >
               {room.name}
@@ -160,7 +159,7 @@ export default function InteractiveDemo() {
         </div>
 
         {/* Style Selector Chips */}
-        <div className="flex items-center space-x-2 bg-slate-900/60 p-1 rounded-xl border border-white/5 w-full md:w-auto overflow-x-auto">
+        <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl border border-slate-200 w-full md:w-auto overflow-x-auto">
           {(Object.keys(activeRoom.styles) as StyleKey[]).map((styleKey) => {
             const style = activeRoom.styles[styleKey];
             const isSelected = selectedStyle === styleKey;
@@ -170,11 +169,11 @@ export default function InteractiveDemo() {
                 onClick={() => setSelectedStyle(styleKey)}
                 className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center space-x-1.5 cursor-pointer ${
                   isSelected
-                    ? 'bg-gradient-to-r from-cyan-500 to-violet-600 text-white shadow'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-slate-900 text-white shadow'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                 }`}
               >
-                <Sparkles className="h-3 w-3" />
+                <Sparkles className="h-3 w-3 text-cyan-400" />
                 <span>{style.name}</span>
               </button>
             );
@@ -186,8 +185,8 @@ export default function InteractiveDemo() {
           onClick={() => setShowSpatialVision(!showSpatialVision)}
           className={`w-full md:w-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 border transition-all cursor-pointer ${
             showSpatialVision
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-inner'
-              : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm'
+              : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
           }`}
         >
           <Eye className="h-4 w-4" />
@@ -203,9 +202,9 @@ export default function InteractiveDemo() {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onTouchMove={handleTouchMove}
-        className="relative w-full h-[380px] sm:h-[500px] rounded-3xl overflow-hidden glass-panel border border-white/10 shadow-2xl select-none group cursor-ew-resize"
+        className="relative w-full h-[380px] sm:h-[500px] rounded-3xl overflow-hidden bg-white border border-slate-200 shadow-2xl select-none group cursor-ew-resize"
       >
-        {/* Underlay Image: AI Restyled Image (Shown on Right) */}
+        {/* Underlay Image: AI Restyled Image */}
         <div className="absolute inset-0 w-full h-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -213,14 +212,13 @@ export default function InteractiveDemo() {
             alt={activeStyleData.name}
             className="w-full h-full object-cover"
           />
-          {/* Badge indicator for Restyled view */}
-          <div className="absolute top-4 right-4 bg-slate-950/80 backdrop-blur-md border border-violet-500/30 text-violet-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-lg">
+          <div className="absolute top-4 right-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-lg">
             <Sparkles className="h-3.5 w-3.5 text-violet-400" />
             <span>AI Restyled: {activeStyleData.name}</span>
           </div>
         </div>
 
-        {/* Overlay Image: Original Room Scan (Clipped on Left based on slider position) */}
+        {/* Overlay Image: Original Room Scan */}
         <div 
           className="absolute inset-0 w-full h-full overflow-hidden"
           style={{ width: `${sliderPosition}%` }}
@@ -233,7 +231,7 @@ export default function InteractiveDemo() {
             style={{ width: sliderRef.current?.getBoundingClientRect().width || '100%' }}
           />
 
-          {/* Spatial AI Bounding Box Overlays (Visible when toggle is ON) */}
+          {/* Spatial AI Bounding Boxes */}
           <AnimatePresence>
             {showSpatialVision && (
               <motion.div
@@ -242,39 +240,35 @@ export default function InteractiveDemo() {
                 exit={{ opacity: 0 }}
                 className="absolute inset-0 pointer-events-none"
               >
-                {/* 2D Occupancy Grid Overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(#06b6d4_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(#0891b2_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
 
-                {/* Bounding Boxes */}
                 {activeRoom.boundingBoxes.map((box) => (
                   <div
                     key={box.id}
                     className={`absolute border-2 rounded-xl flex items-start justify-start p-1.5 shadow-lg transition-all ${box.color}`}
                     style={box.coords}
                   >
-                    <span className="text-[10px] font-black tracking-wider px-1.5 py-0.5 rounded bg-black/70 backdrop-blur-sm shadow border border-white/10">
+                    <span className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-white/90 backdrop-blur-sm text-slate-900 shadow border border-slate-200">
                       {box.label}
                     </span>
                   </div>
                 ))}
 
-                {/* Walkway Clearance Simulated Pathway */}
                 <svg className="absolute inset-0 w-full h-full pointer-events-none">
                   <path
                     d="M 100,200 Q 300,300 500,220 T 900,350"
                     fill="none"
-                    stroke="#06b6d4"
+                    stroke="#0891b2"
                     strokeWidth="3"
                     strokeDasharray="6 6"
-                    className="animate-pulse opacity-70"
+                    className="animate-pulse opacity-80"
                   />
                 </svg>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Badge indicator for Original scan view */}
-          <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md border border-white/10 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-lg">
+          <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md border border-slate-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-lg">
             <Box className="h-3.5 w-3.5 text-cyan-400" />
             <span>Original Scan Blueprint</span>
           </div>
@@ -282,10 +276,10 @@ export default function InteractiveDemo() {
 
         {/* Divider Bar & Slider Handle */}
         <div
-          className="absolute top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 via-white to-violet-500 shadow-[0_0_12px_rgba(6,182,212,0.8)] cursor-ew-resize"
+          className="absolute top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-500 via-violet-500 to-indigo-600 shadow-[0_0_12px_rgba(139,92,246,0.6)] cursor-ew-resize"
           style={{ left: `${sliderPosition}%` }}
         >
-          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-slate-950 border-2 border-cyan-400 text-cyan-300 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+          <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white border-2 border-violet-600 text-violet-600 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
             <MoveHorizontal className="h-5 w-5" />
           </div>
         </div>
@@ -293,25 +287,25 @@ export default function InteractiveDemo() {
 
       {/* Bottom Live Metrics Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
-          <div className="text-[11px] font-semibold text-slate-400">Optimization Gain</div>
-          <div className="text-xl font-extrabold text-emerald-400">{activeStyleData.scoreDelta}</div>
-          <div className="text-[10px] text-slate-500">NSGA-II Fitness Score</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">Optimization Gain</div>
+          <div className="text-xl font-extrabold text-emerald-600">{activeStyleData.scoreDelta}</div>
+          <div className="text-[10px] text-slate-400">NSGA-II Fitness Score</div>
         </div>
-        <div className="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
-          <div className="text-[11px] font-semibold text-slate-400">Walkway Clearance</div>
-          <div className="text-xl font-extrabold text-cyan-400">{activeStyleData.clearance}</div>
-          <div className="text-[10px] text-slate-500">Min safety buffer compliant</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">Walkway Clearance</div>
+          <div className="text-xl font-extrabold text-cyan-600">{activeStyleData.clearance}</div>
+          <div className="text-[10px] text-slate-400">Min safety buffer compliant</div>
         </div>
-        <div className="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
-          <div className="text-[11px] font-semibold text-slate-400">A* Flow Index</div>
-          <div className="text-xl font-extrabold text-violet-400">{activeStyleData.flowIndex}</div>
-          <div className="text-[10px] text-slate-500">Walkability Graph Score</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">A* Flow Index</div>
+          <div className="text-xl font-extrabold text-violet-600">{activeStyleData.flowIndex}</div>
+          <div className="text-[10px] text-slate-400">Walkability Graph Score</div>
         </div>
-        <div className="glass-panel p-4 rounded-2xl border border-white/5 space-y-1">
-          <div className="text-[11px] font-semibold text-slate-400">Overall Harmony</div>
-          <div className="text-xl font-extrabold text-white">{activeStyleData.score}/100</div>
-          <div className="text-[10px] text-slate-500">Explainable composite</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-1 shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500">Overall Harmony</div>
+          <div className="text-xl font-extrabold text-slate-900">{activeStyleData.score}/100</div>
+          <div className="text-[10px] text-slate-400">Explainable composite</div>
         </div>
       </div>
     </section>
