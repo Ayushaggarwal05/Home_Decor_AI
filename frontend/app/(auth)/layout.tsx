@@ -20,10 +20,10 @@ export default function AuthLayout({
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex flex-col items-center gap-2">
             <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-lg">
-              <span className="text-white font-black text-base">A</span>
+              <span className="text-white font-black text-base">M</span>
             </div>
             <span className="text-slate-100 font-bold text-lg tracking-tight">
-              Aura AI
+              Matter AI
             </span>
           </Link>
         </div>

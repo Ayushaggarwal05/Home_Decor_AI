@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="glass-panel border border-white/8 rounded-3xl p-8 shadow-2xl space-y-6">
       <div className="space-y-1">
-        <h1 className="text-xl font-bold text-slate-100">Sign in to Aura AI</h1>
+        <h1 className="text-xl font-bold text-slate-100">Sign in to Matter AI</h1>
         <p className="text-xs text-slate-400">
           Enter your credentials to access your spatial intelligence workspace.
         </p>

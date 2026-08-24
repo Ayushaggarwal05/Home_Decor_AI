@@ -1,5 +1,5 @@
 // ===========================================================================
-// FRONTEND TYPE DEFINITIONS — Aura AI Platform
+// FRONTEND TYPE DEFINITIONS — Matter AI Platform
 // Includes both the canonical camelCase frontend types AND
 // the raw snake_case backend response shapes for typed mapping.
 // ===========================================================================

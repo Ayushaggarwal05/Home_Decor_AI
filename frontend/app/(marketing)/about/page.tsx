@@ -15,7 +15,7 @@ export default function AboutPage() {
 
       <div className="text-center max-w-2xl mx-auto space-y-4 mb-16">
         <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-          About Aura AI
+          About Matter AI
         </h1>
         <p className="text-sm text-slate-400">
           Pioneering spatial intelligence algorithms to re-imagine the way we live and structure layouts.
@@ -28,10 +28,10 @@ export default function AboutPage() {
             <Building className="h-5 w-5 mr-2 text-primary" /> Our Mission
           </h2>
           <p>
-            Aura AI was founded by a combined team of computer vision engineers and professional spatial planners. We noticed that while generative AI was transforming digital images, it lacked the spatial math checking required to build realistic, functional interior environments.
+            Matter AI was founded by a combined team of computer vision engineers and professional spatial planners. We noticed that while generative AI was transforming digital images, it lacked the spatial math checking required to build realistic, functional interior environments.
           </p>
           <p>
-            We built Aura to provide real spatial coordinates, occupancy heatmaps, and symmetry measurements alongside beautiful redesign prompts. This guarantees that your redesigned rooms don't just look pretty on screens, but actually work in practice.
+            We built Matter to provide real spatial coordinates, occupancy heatmaps, and symmetry measurements alongside beautiful redesign prompts. This guarantees that your redesigned rooms don't just look pretty on screens, but actually work in practice.
           </p>
         </div>
 
@@ -56,7 +56,7 @@ export default function AboutPage() {
             <Mail className="h-4 w-4 mr-1.5 text-yellow-400" /> Got questions or feedback?
           </h2>
           <p className="text-xs text-slate-400 max-w-md">
-            Reach out to our spatial architects team at <strong className="text-white hover:underline cursor-pointer">architects@aura-spatial.ai</strong>.
+            Reach out to our spatial architects team at <strong className="text-white hover:underline cursor-pointer">architects@matter-spatial.ai</strong>.
           </p>
         </div>
       </div>

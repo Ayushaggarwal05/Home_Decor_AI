@@ -28,7 +28,7 @@ export default function SignupPage() {
 
     try {
       await signup({ email, password, full_name: fullName });
-      toast.success('Account created! Welcome to Aura AI.');
+      toast.success('Account created! Welcome to Matter AI.');
       router.push('/studio');
     } catch {
       // error shown inline from store
@@ -40,7 +40,7 @@ export default function SignupPage() {
       <div className="space-y-1">
         <h1 className="text-xl font-bold text-slate-100">Create your account</h1>
         <p className="text-xs text-slate-400">
-          Join Aura AI to start mapping and optimising your spaces.
+          Join Matter AI to start mapping and optimising your spaces.
         </p>
       </div>
 
