@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Flame, Sparkles } from 'lucide-react';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Flame, Sparkles } from "lucide-react";
 
 export default function MarketingNavbar() {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/features', label: 'Features' },
-    { href: '/pricing', label: 'Pricing' },
-    { href: '/about', label: 'About' },
+    { href: "/", label: "Home" },
+    { href: "/features", label: "Features" },
+    { href: "/pricing", label: "Pricing" },
+    { href: "/about", label: "About" },
   ];
 
   return (
@@ -22,7 +22,10 @@ export default function MarketingNavbar() {
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-violet-500/60 to-transparent pointer-events-none" />
 
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center space-x-2.5 group cursor-pointer">
+        <Link
+          href="/"
+          className="flex items-center space-x-2.5 group cursor-pointer"
+        >
           <div className="p-1.5 bg-gradient-to-tr from-violet-600 to-cyan-500 rounded-xl shadow-md shadow-violet-500/20 group-hover:scale-105 transition-transform">
             <Flame className="h-4.5 w-4.5 text-white" />
           </div>
@@ -40,9 +43,7 @@ export default function MarketingNavbar() {
                 key={link.href}
                 href={link.href}
                 className={`transition-colors cursor-pointer ${
-                  isActive
-                    ? 'text-cyan-400 font-bold'
-                    : 'text-slate-300 hover:text-cyan-400'
+                  isActive ? "text-cyan-400 font-bold" : "hover:text-cyan-400"
                 }`}
               >
                 {link.label}
