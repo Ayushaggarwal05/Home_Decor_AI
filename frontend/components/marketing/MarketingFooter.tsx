@@ -17,8 +17,8 @@ export default function MarketingFooter() {
   };
 
   return (
-    <footer className="border-t border-slate-800 bg-[#090b11] text-white pt-16 pb-12 px-6 w-full relative z-10 font-sans">
-      <div className="max-w-6xl mx-auto space-y-14">
+    <footer className="border-t border-slate-800 bg-[#090b11] text-white pt-16 pb-12 px-4 sm:px-8 lg:px-12 w-full relative z-10 font-sans">
+      <div className="max-w-7xl mx-auto space-y-14">
         
         {/* Top Newsletter & Subscription Banner */}
         <div className="glass-panel p-8 rounded-3xl border border-white/10 bg-slate-900/60 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">

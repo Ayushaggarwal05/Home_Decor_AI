@@ -95,7 +95,7 @@ export default function PricingSection() {
         </div>
 
         {/* CARD 2 (MIDDLE): Pro Studio — TALLER, WIDER POPUP CARD WITH OVERHANGING BADGE */}
-        <div className="w-full md:w-[360px] relative bg-white border-2 border-violet-600 rounded-3xl p-8 sm:p-9 flex flex-col justify-between space-y-7 shadow-2xl shadow-violet-500/15 z-10 my-4 md:my-0">
+        <div className="w-full md:w-[360px] relative bg-gradient-to-b from-violet-50/90 via-slate-100/80 to-violet-50/70 border-2 border-violet-600 rounded-3xl p-8 sm:p-9 flex flex-col justify-between space-y-7 shadow-2xl shadow-violet-500/15 z-10 my-4 md:my-0">
           
           {/* Overhanging Pill Badge on Top Edge */}
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-xs font-bold shadow-lg shadow-violet-600/30 whitespace-nowrap">
