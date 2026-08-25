@@ -21,6 +21,7 @@ import {
   BrainCircuit,
   Award,
 } from 'lucide-react';
+import MarketingNavbar from '@/components/marketing/MarketingNavbar';
 import MarketingFooter from '@/components/marketing/MarketingFooter';
 
 const METRICS = [
@@ -109,35 +110,8 @@ export default function AboutPage() {
       {/* Light Grid Overlay Pattern */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
 
-      {/* Floating Dark Navbar */}
-      <div className="sticky top-4 z-50 px-4 w-full flex justify-center">
-        <header className="w-full max-w-7xl bg-[#090b11]/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl px-6 py-3.5 flex items-center justify-between text-white">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-1.5 bg-gradient-to-tr from-violet-600 to-cyan-500 rounded-xl shadow-md shadow-violet-500/20">
-              <Flame className="h-4.5 w-4.5 text-white" />
-            </div>
-            <span className="text-base font-black tracking-wider text-white">
-              MATTER AI
-            </span>
-          </div>
-
-          <div className="flex items-center space-x-6">
-            <Link
-              href="/"
-              className="inline-flex items-center text-xs font-semibold text-slate-300 hover:text-cyan-400 transition-colors"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
-              <span>Return to Site</span>
-            </Link>
-            <Link
-              href="/studio"
-              className="px-4 py-2 text-xs font-bold bg-white text-slate-950 hover:bg-slate-200 rounded-xl transition-all shadow-md cursor-pointer inline-block"
-            >
-              Launch Console
-            </Link>
-          </div>
-        </header>
-      </div>
+      {/* Unified Dark Glass Navbar */}
+      <MarketingNavbar />
 
       {/* Page Content Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 lg:px-12 pt-10 pb-20 space-y-20 relative z-10">

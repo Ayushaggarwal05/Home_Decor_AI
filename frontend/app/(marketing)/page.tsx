@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Flame } from "lucide-react";
 
+import MarketingNavbar from "@/components/marketing/MarketingNavbar";
 import HeroSection from "@/components/marketing/HeroSection";
 import InteractiveDemo from "@/components/marketing/InteractiveDemo";
 import FeatureDualMode from "@/components/marketing/FeatureDualMode";
@@ -25,49 +26,8 @@ export default function MarketingLandingPage() {
       {/* Light grid pattern overlay */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
 
-      {/* Floating Rounded Dark Navbar Container */}
-      <div className="sticky top-4 z-50 px-4 w-full flex justify-center">
-        <header className="w-full max-w-6xl bg-[#090b11]/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl px-6 py-3.5 flex items-center justify-between text-white">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-1.5 bg-gradient-to-tr from-violet-600 to-cyan-500 rounded-xl shadow-md shadow-violet-500/20">
-              <Flame className="h-4.5 w-4.5 text-white" />
-            </div>
-            <span className="text-base font-black tracking-wider text-white">
-              MATTER AI
-            </span>
-          </div>
-
-          <nav className="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-300">
-            <Link
-              href="/features"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              Features
-            </Link>
-            <Link
-              href="/pricing"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/about"
-              className="hover:text-cyan-400 transition-colors"
-            >
-              About
-            </Link>
-          </nav>
-
-          <div>
-            <Link
-              href="/studio"
-              className="px-4.5 py-2 text-xs font-bold bg-white text-slate-950 hover:bg-slate-200 rounded-xl transition-all shadow-md cursor-pointer inline-block"
-            >
-              Launch Console
-            </Link>
-          </div>
-        </header>
-      </div>
+      {/* Unified Dark Glass Navbar */}
+      <MarketingNavbar />
 
       {/* Page Sections */}
       <main className="flex-1 space-y-4 relative z-10 pt-2">
