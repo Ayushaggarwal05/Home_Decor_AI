@@ -35,13 +35,13 @@ export default function HeroSection() {
 
           {/* Stacked Giant Typography */}
           <div className="space-y-1">
-            <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 leading-[0.92]">
+            <h1 className="text-6xl sm:text-7xl lg:text-9xl font-black tracking-tight text-slate-900 leading-[0.92]">
               Spatial
             </h1>
-            <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 leading-[0.92]">
+            <h1 className="text-6xl sm:text-7xl lg:text-9xl font-black tracking-tight text-slate-900 leading-[0.92]">
               Intelligence
             </h1>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 via-cyan-600 to-violet-600 tracking-tight pt-2">
+            <div className="text-2xl sm:text-3xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-600 via-cyan-600 to-violet-600 tracking-tight pt-2">
               For Modern Interior Design
             </div>
           </div>
