@@ -460,6 +460,30 @@ class YOLOv8Detector:
         # Run model bootloader
         self.load_model()
 
+    def get_prompts_for_space_type(self, space_type: Optional[str] = None) -> List[str]:
+        """
+        Dynamically selects relevant candidate object detection prompts based on the room space type
+        to maximize detection accuracy and eliminate out-of-context hallucinations.
+        """
+        if not space_type:
+            return self.dino_prompts
+
+        st = space_type.lower().strip()
+        if "bed" in st:
+            return ["bed", "nightstand", "wardrobe", "armchair", "desk", "dresser", "mirror", "chest of drawers", "door", "window"]
+        elif "living" in st:
+            return ["sofa", "couch", "coffee table", "TV console", "armchair", "bookshelf", "sideboard", "side table", "door", "window"]
+        elif "office" in st or "study" in st or "work" in st:
+            return ["desk", "office chair", "chair", "bookshelf", "cabinet", "filing cabinet", "door", "window"]
+        elif "dining" in st:
+            return ["dining table", "dining chair", "chair", "sideboard", "buffet cabinet", "cupboard", "door", "window"]
+        elif "kitchen" in st:
+            return ["kitchen island", "countertop", "bar stool", "refrigerator", "cabinet", "pantry", "cupboard", "door", "window"]
+        elif "bath" in st:
+            return ["vanity", "mirror", "bathtub", "shower", "towel rack", "cabinet", "door", "window"]
+        
+        return self.dino_prompts
+
     def load_model(self) -> None:
         """
         Initializes YOLOv8 and Grounding DINO networks using lazy loading cached singletons.
@@ -666,14 +690,17 @@ class YOLOv8Detector:
                 retries = 3
                 wait_time = 5.0
                 
+                # Dynamically select candidate prompts for the specific room type
+                target_prompts = self.get_prompts_for_space_type(space_type)
+
                 if is_vlm:
                     context_hint = ""
                     if space_type:
                         clean_space = space_type.replace("_", " ").title()
-                        context_hint = f"CONTEXT: The image is a scan of a {clean_space}.\nFocus extra attention on detecting common items for this space type (e.g. bookshelves, desks, cupboards, wardrobes, or nightstands if present).\n"
+                        context_hint = f"CONTEXT: The image is a scan of a {clean_space}.\nFocus extra attention on detecting common items for this space type.\n"
                         
                     prompt = (
-                        f"Perform zero-shot object detection on this image for candidate labels: {self.dino_prompts}.\n"
+                        f"Perform zero-shot object detection on this image for candidate labels: {target_prompts}.\n"
                         f"{context_hint}"
                         f"Return a JSON array of objects. Each object MUST strictly follow this format:\n"
                         f"{{\n"
@@ -685,8 +712,8 @@ class YOLOv8Detector:
                         f"Ensure 'box' is a JSON list of 4 integers: [xmin, ymin, xmax, ymax]. Do not write 'xmin', 'ymin', 'xmax', or 'ymax' keys.\n"
                         f"CRITICAL INSTRUCTIONS:\n"
                         f"- Be extremely conservative and precise. Do not guess or hallucinate objects.\n"
-                        f"- Only detect objects that are clearly and unambiguously present.\n"
-                        f"- Pay close attention to structural and storage elements like bookshelves, desks, cupboards, wardrobes, nightstands, and doors/windows as the primary detector misses them.\n"
+                        f"- Only detect objects that belong in a {space_type or 'room'} and are clearly and unambiguously present.\n"
+                        f"- Pay close attention to structural and storage elements like bookshelves, desks, cupboards, wardrobes, nightstands, and doors/windows.\n"
                         f"- Do NOT detect daybeds or blankets as a 'sofa' or 'couch'.\n"
                         f"- Do NOT detect laptop stands, trays, or lapdesks as a 'coffee table' or 'dining table'.\n"
                         f"Output ONLY the raw JSON array. No markdown code blocks, no other text."
@@ -742,7 +769,7 @@ class YOLOv8Detector:
                     payload = {
                         "inputs": img_b64,
                         "parameters": {
-                            "candidate_labels": self.dino_prompts
+                            "candidate_labels": target_prompts
                         }
                     }
                     request_params = RequestParameters(
