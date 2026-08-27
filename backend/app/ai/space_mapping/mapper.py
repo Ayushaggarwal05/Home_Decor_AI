@@ -50,11 +50,15 @@ class OccupancyGridGenerator:
                 label = det.get("label", "Object")
                 confidence = float(det.get("confidence", 0.9))
                 
-                # Compute discrete grid index boundaries
-                start_col = max(0, min(self.cols - 1, int(x / 10.0)))
-                end_col = max(0, min(self.cols - 1, int((x + w - 0.1) / 10.0)))
-                start_row = max(0, min(self.rows - 1, int(y / 10.0)))
-                end_row = max(0, min(self.rows - 1, int((y + h - 0.1) / 10.0)))
+                # Compute dynamic cell scale based on grid resolution
+                col_scale = 100.0 / self.cols
+                row_scale = 100.0 / self.rows
+
+                # Compute discrete grid index boundaries dynamically
+                start_col = max(0, min(self.cols - 1, int(x / col_scale)))
+                end_col = max(0, min(self.cols - 1, int((x + w - 0.01) / col_scale)))
+                start_row = max(0, min(self.rows - 1, int(y / row_scale)))
+                end_row = max(0, min(self.rows - 1, int((y + h - 0.01) / row_scale)))
 
                 for r in range(start_row, end_row + 1):
                     for c in range(start_col, end_col + 1):
