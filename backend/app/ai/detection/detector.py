@@ -795,46 +795,39 @@ class YOLOv8Detector:
                                 
                             x1, y1, x2, y2 = 0.0, 0.0, 0.0, 0.0
                             if isinstance(box, dict):
-                                x1 = safe_float_from_val(box.get("xmin", 0.0))
-                                y1 = safe_float_from_val(box.get("ymin", 0.0))
-                                x2 = safe_float_from_val(box.get("xmax", 0.0))
-                                y2 = safe_float_from_val(box.get("ymax", 0.0))
+                                x1 = safe_float_from_val(box.get("xmin", box.get("x", 0.0)))
+                                y1 = safe_float_from_val(box.get("ymin", box.get("y", 0.0)))
+                                x2 = safe_float_from_val(box.get("xmax", x1 + box.get("width", 0.0)))
+                                y2 = safe_float_from_val(box.get("ymax", y1 + box.get("height", 0.0)))
                             elif isinstance(box, (list, tuple)) and len(box) == 4:
                                 val_0 = safe_float_from_val(box[0])
                                 val_1 = safe_float_from_val(box[1])
                                 val_2 = safe_float_from_val(box[2])
                                 val_3 = safe_float_from_val(box[3])
                                 
-                                # For VLM list format [xmin, ymin, xmax, ymax]
-                                if is_vlm:
-                                    x1, y1, x2, y2 = val_0, val_1, val_2, val_3
-                                else:
-                                    y1, x1, y2, x2 = val_0, val_1, val_2, val_3
-                                    
-                                if x1 > x2:
-                                    x1, x2 = x2, x1
-                                if y1 > y2:
-                                    y1, y2 = y2, y1
-                                    
-                            # If VLM returned coordinates on [0, 1000] scale, normalize them to [0, 1] first
-                            if is_vlm and (x1 > 1.0 or y1 > 1.0 or x2 > 1.0 or y2 > 1.0):
-                                x1 /= 1000.0
-                                y1 /= 1000.0
-                                x2 /= 1000.0
-                                y2 /= 1000.0
-                                
-                                # Now scale them to pixel dimensions so the below percentage logic works correctly
+                                # Standardize coordinate ordering: [xmin, ymin, xmax, ymax]
+                                x1, y1, x2, y2 = val_0, val_1, val_2, val_3
+
+                            # Ensure proper min/max coordinate alignment
+                            if x1 > x2:
+                                x1, x2 = x2, x1
+                            if y1 > y2:
+                                y1, y2 = y2, y1
+
+                            # Dynamic scale detection ([0, 1] vs [0, 1000] vs Absolute Pixels)
+                            max_val = max(x1, y1, x2, y2)
+                            if max_val > 1.0 and max_val <= 1000.0:
+                                # VLM 1000 scale -> convert to image pixel dimensions
+                                x1 = (x1 / 1000.0) * image_width
+                                y1 = (y1 / 1000.0) * image_height
+                                x2 = (x2 / 1000.0) * image_width
+                                y2 = (y2 / 1000.0) * image_height
+                            elif max_val <= 1.0:
+                                # Normalized [0, 1] scale -> convert to image pixel dimensions
                                 x1 *= image_width
                                 y1 *= image_height
                                 x2 *= image_width
                                 y2 *= image_height
-                            else:
-                                # Legacy [0, 1] scaling
-                                if x1 <= 1.0 and y1 <= 1.0 and x2 <= 1.0 and y2 <= 1.0:
-                                    x1 *= image_width
-                                    y1 *= image_height
-                                    x2 *= image_width
-                                    y2 *= image_height
                             
                             # Normalize to room percentage coordinate scale
                             x = max(0.0, min(100.0, (x1 / image_width) * 100.0))
