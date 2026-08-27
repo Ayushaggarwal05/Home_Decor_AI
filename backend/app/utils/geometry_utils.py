@@ -124,6 +124,8 @@ def inflate_obstacles(
 ) -> List[List[bool]]:
     """
     Inflates obstacle cells by a safety padding radius to model human body width clearances.
+    Wall-flushed furniture edges are exempted from wall-side inflation to preserve proper 
+    architectural wall placement and prevent false walkway blockages.
     
     Args:
         grid: Original 2D boolean grid mapping.
@@ -140,11 +142,26 @@ def inflate_obstacles(
     
     for r in range(resolution):
         for c in range(resolution):
-            if grid[r][c]:  # If original cell is an obstacle, inflate outwards
+            if grid[r][c]:  # If original cell is an obstacle
+                # Detect if cell sits against a room boundary wall
+                is_top_wall = (r <= padding_cells)
+                is_bottom_wall = (r >= resolution - 1 - padding_cells)
+                is_left_wall = (c <= padding_cells)
+                is_right_wall = (c >= resolution - 1 - padding_cells)
+                
                 for dr in range(-padding_cells, padding_cells + 1):
                     for dc in range(-padding_cells, padding_cells + 1):
-                        # Circular coordinate check for safety bubble radius expansion
                         if abs(dr) + abs(dc) <= padding_cells:
+                            # Suppress wall-side inflation for wall-flushed furniture
+                            if is_top_wall and dr < 0:
+                                continue
+                            if is_bottom_wall and dr > 0:
+                                continue
+                            if is_left_wall and dc < 0:
+                                continue
+                            if is_right_wall and dc > 0:
+                                continue
+                                
                             nr, nc = r + dr, c + dc
                             if 0 <= nr < resolution and 0 <= nc < resolution:
                                 inflated[nr][nc] = True
