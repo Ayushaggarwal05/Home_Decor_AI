@@ -71,3 +71,25 @@ def decode_refresh_token(token: str) -> dict:
         return decoded_payload
     except jwt.PyJWTError:
         return {}
+
+def create_reset_token(subject: Union[str, Any]) -> str:
+    """Generate signed short-lived JWT password reset token (valid for 15 mins)."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode = {
+        "exp": expire, 
+        "sub": str(subject),
+        "type": "reset",
+        "iss": "aura-ai-backend"
+    }
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
+
+def decode_reset_token(token: str) -> dict:
+    """Validate and decode password reset JWT token."""
+    try:
+        decoded_payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        if decoded_payload.get("type") != "reset":
+            return {}
+        return decoded_payload
+    except jwt.PyJWTError:
+        return {}
+

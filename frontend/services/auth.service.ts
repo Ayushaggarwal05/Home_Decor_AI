@@ -70,6 +70,25 @@ export const authService = {
   },
 
   /**
+   * POST /api/auth/forgot-password
+   */
+  async forgotPassword(email: string): Promise<{ message: string; reset_url?: string }> {
+    const response = await apiClient.post<{ message: string; reset_url?: string }>('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  /**
+   * POST /api/auth/reset-password
+   */
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/reset-password', {
+      token,
+      new_password: newPassword,
+    });
+    return response.data;
+  },
+
+  /**
    * Clear session tokens
    */
   logout(): void {

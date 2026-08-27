@@ -4,7 +4,15 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.user import User
 from app.schemas.user_schema import UserCreate, UserResponse, TokenResponse, TokenRefreshRequest
-from app.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token, decode_refresh_token
+from app.core.security import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+    create_reset_token,
+    decode_reset_token
+)
 from app.api.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -85,3 +93,66 @@ def refresh_session(req: TokenRefreshRequest, db: Session = Depends(get_db)):
 def get_me(current_user: User = Depends(get_current_user)):
     """Retrieve details of the active authenticated user."""
     return current_user
+
+@router.post("/forgot-password")
+def forgot_password(payload: dict, db: Session = Depends(get_db)):
+    """Triggers password reset flow for the provided user email."""
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email address is required."
+        )
+    
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email address. Please check your spelling or sign up."
+        )
+
+    reset_token = create_reset_token(subject=user.id)
+    reset_url = f"/reset-password?token={reset_token}"
+    
+    return {
+        "message": "Password reset link generated successfully.",
+        "reset_url": reset_url
+    }
+
+@router.post("/reset-password")
+def reset_password(payload: dict, db: Session = Depends(get_db)):
+    """Resets user password given a valid JWT reset token."""
+    token = payload.get("token")
+    new_password = payload.get("new_password")
+
+    if not token or not new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token and new password are required."
+        )
+    
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long."
+        )
+    
+    decoded = decode_reset_token(token)
+    if not decoded or not decoded.get("sub"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset token."
+        )
+    
+    user_id = int(decoded["sub"])
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+    
+    user.hashed_password = get_password_hash(new_password)
+    db.commit()
+
+    return {"message": "Password successfully updated. You can now log in with your new credentials."}

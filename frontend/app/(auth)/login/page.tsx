@@ -8,7 +8,6 @@ import { useToastStore } from '@/store/toastStore';
 import { Eye, EyeOff, LogIn, Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
-import { ForgotPasswordModal } from '@/components/auth/ForgotPasswordModal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,7 +18,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,13 +87,12 @@ export default function LoginPage() {
             >
               Password
             </label>
-            <button
-              type="button"
-              onClick={() => setIsForgotModalOpen(true)}
+            <Link
+              href="/forgot-password"
               className="text-[11px] font-semibold text-violet-400 hover:text-violet-300 transition-colors cursor-pointer"
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -183,13 +180,6 @@ export default function LoginPage() {
           Create an account
         </Link>
       </p>
-
-      {/* Forgot Password Modal */}
-      <ForgotPasswordModal
-        isOpen={isForgotModalOpen}
-        onClose={() => setIsForgotModalOpen(false)}
-        defaultEmail={email}
-      />
     </motion.div>
   );
 }
