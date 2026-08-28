@@ -267,9 +267,9 @@ def check_size_plausibility(label: str, bbox: Dict[str, float]) -> bool:
             return False
             
     # Sofas and beds must be reasonably sized
-    if lbl == "sofa" and w < 6.0:
+    if lbl == "sofa" and w < 3.0:
         return False
-    if lbl == "bed" and (w < 8.0 or h < 8.0):
+    if lbl == "bed" and (w < 3.0 or h < 3.0):
         return False
         
     return True
@@ -327,19 +327,11 @@ def suppress_duplicate_detections(detections: List[Dict[str, Any]], iou_threshol
             # physically incompatible nested items conflict
             is_contained_conflict = False
             if containment > 0.8:
-                # e.g., coffee table inside a bed, sideboard, or sofa
-                # door inside sideboard (wardrobe door false detection) or door inside bed
+                # Door falsely detected inside storage cabinets or beds
                 labels_sorted = sorted([lbl_curr, lbl_kept])
-                if (labels_sorted == ["bed", "coffee table"]) or \
-                   (labels_sorted == ["bed", "sofa"]) or \
-                   (labels_sorted == ["bed", "door"]) or \
-                   (labels_sorted == ["door", "sideboard"]) or \
+                if (labels_sorted == ["door", "sideboard"]) or \
                    (labels_sorted == ["door", "wardrobe"]) or \
-                   (labels_sorted == ["door", "cupboard"]) or \
-                   (labels_sorted == ["coffee table", "sofa"]) or \
-                   (labels_sorted == ["bed", "sideboard"]) or \
-                   (labels_sorted == ["bed", "wardrobe"]) or \
-                   (labels_sorted == ["bed", "cupboard"]):
+                   (labels_sorted == ["door", "cupboard"]):
                     is_contained_conflict = True
             
             # Check subclass matches or very high overlap indicating same physical object
