@@ -50,6 +50,10 @@ class OccupancyGridGenerator:
                 label = det.get("label", "Object")
                 confidence = float(det.get("confidence", 0.9))
                 
+                # Structural wall elements (Window) and small decorative items do not occupy floor space
+                if label.lower() in ["window", "potted plant", "vase"]:
+                    continue
+                
                 # Compute dynamic cell scale based on grid resolution
                 col_scale = 100.0 / self.cols
                 row_scale = 100.0 / self.rows

@@ -462,19 +462,19 @@ class YOLOv8Detector:
 
         st = space_type.lower().strip()
         if "bed" in st:
-            return ["bed", "nightstand", "wardrobe", "armchair", "desk", "dresser", "mirror", "chest of drawers", "door", "window"]
+            return ["bed", "nightstand", "wardrobe", "armchair", "desk", "dresser", "mirror", "chest of drawers", "door"]
         elif "living" in st:
-            return ["sofa", "couch", "coffee table", "TV console", "armchair", "bookshelf", "sideboard", "side table", "door", "window"]
+            return ["sofa", "couch", "coffee table", "TV console", "armchair", "bookshelf", "sideboard", "side table", "door"]
         elif "office" in st or "study" in st or "work" in st:
-            return ["desk", "office chair", "chair", "bookshelf", "cabinet", "filing cabinet", "door", "window"]
+            return ["desk", "office chair", "chair", "bookshelf", "cabinet", "filing cabinet", "door"]
         elif "dining" in st:
-            return ["dining table", "dining chair", "chair", "sideboard", "buffet cabinet", "cupboard", "door", "window"]
+            return ["dining table", "dining chair", "chair", "sideboard", "buffet cabinet", "cupboard", "door"]
         elif "kitchen" in st:
-            return ["kitchen island", "countertop", "bar stool", "refrigerator", "cabinet", "pantry", "cupboard", "door", "window"]
+            return ["kitchen island", "countertop", "bar stool", "refrigerator", "cabinet", "pantry", "cupboard", "door"]
         elif "bath" in st:
-            return ["vanity", "mirror", "bathtub", "shower", "towel rack", "cabinet", "door", "window"]
+            return ["vanity", "mirror", "bathtub", "shower", "towel rack", "cabinet", "door"]
         
-        return self.dino_prompts
+        return [p for p in self.dino_prompts if p != "window"]
 
     def load_model(self) -> None:
         """
@@ -865,7 +865,7 @@ class YOLOv8Detector:
                                 continue
                             
                             canonical_label = map_label_to_canonical(label_str)
-                            if canonical_label in ["Potted Plant", "Vase"]:
+                            if canonical_label in ["Potted Plant", "Vase", "Window"]:
                                 continue
                                 
                             dino_detections.append({
