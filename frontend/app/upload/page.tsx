@@ -11,6 +11,7 @@ import UploadDropzone from '@/components/upload/UploadDropzone';
 import ImagePreview from '@/components/upload/ImagePreview';
 import PromptInput from '@/components/upload/PromptInput';
 import UploadProgress from '@/components/upload/UploadProgress';
+import { CameraGuidanceBanner } from '@/components/upload/CameraGuidanceBanner';
 import { useRouter } from 'next/navigation';
 import { Compass } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -107,6 +108,8 @@ export default function UploadPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Image upload */}
           <div className="lg:col-span-7 space-y-6">
+            <CameraGuidanceBanner />
+
             <div className="glass-panel border rounded-3xl p-6 space-y-4">
               <div>
                 <h3 className="text-base font-bold text-foreground">
