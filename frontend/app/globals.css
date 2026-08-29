@@ -56,7 +56,7 @@
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.05);
   --ring: #8b5cf6;
-  
+
   --radius: 1rem;
 }
 
@@ -101,10 +101,14 @@
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.3), 0 0 20px rgba(6, 182, 212, 0.2);
+    box-shadow:
+      0 0 10px rgba(6, 182, 212, 0.3),
+      0 0 20px rgba(6, 182, 212, 0.2);
   }
   to {
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5), 0 0 35px rgba(6, 182, 212, 0.3);
+    box-shadow:
+      0 0 20px rgba(6, 182, 212, 0.5),
+      0 0 35px rgba(6, 182, 212, 0.3);
   }
 }
 
@@ -112,9 +116,22 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Open Sans",
+    "Helvetica Neue",
+    sans-serif;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* Glassmorphism panel styling */
@@ -178,12 +195,51 @@ body {
 /* Grid overlay background */
 .grid-overlay {
   background-size: 40px 40px;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 .light .grid-overlay {
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(15, 23, 42, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+}
+
+/* Print PDF stylesheet overrides */
+@media print {
+  /* Reset page backgrounds to clean white for paper/PDF */
+  body,
+  main,
+  section,
+  article {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Hide dark web UI elements, modals, nav bars, and buttons during print */
+  header,
+  nav,
+  footer,
+  aside,
+  button,
+  [role="dialog"],
+  .fixed,
+  .glass-panel {
+    display: none !important;
+  }
+
+  /* Display printable report document container */
+  #printable-report-area,
+  #printable-report-area * {
+    display: block !important;
+    visibility: visible !important;
+    color: #0f172a !important;
+  }
+
+  #printable-report-area {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: #ffffff !important;
+  }
 }

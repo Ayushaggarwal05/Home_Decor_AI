@@ -18,6 +18,8 @@ import SpacingConnectors from '@/components/visualization/SpacingConnectors';
 import RelationshipGraph from '@/components/visualization/RelationshipGraph';
 import FadeIn from '@/components/animations/FadeIn';
 import Link from 'next/link';
+import { ExportReportModal } from '@/components/export/ExportReportModal';
+import { PrintableReportTemplate } from '@/components/export/PrintableReportTemplate';
 import { 
   Compass, 
   Settings2, 
@@ -25,7 +27,8 @@ import {
   ArrowLeft,
   Info,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +41,7 @@ export default function ResearchStudioPage() {
   } = useRoomStore();
 
   const [activeTab, setActiveTab] = React.useState<'scores' | 'graph'>('scores');
+  const [isExportOpen, setIsExportOpen] = React.useState(false);
 
   // Retrieve active room or fallback to first
   const activeRoom = rooms.find(r => r.id === activeRoomId) || rooms[0];
@@ -123,16 +127,37 @@ export default function ResearchStudioPage() {
               </div>
             </div>
 
-            {/* Quick toggle to Redesign Page */}
-            <Link
-              href="/redesign"
-              className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center space-x-1.5 cursor-pointer"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Generate Generative Redesign</span>
-            </Link>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsExportOpen(true)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all shadow-md flex items-center space-x-1.5 cursor-pointer"
+              >
+                <FileText className="h-3.5 w-3.5 text-cyan-400" />
+                <span>Export Report</span>
+              </button>
+
+              {/* Quick toggle to Redesign Page */}
+              <Link
+                href="/redesign"
+                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center space-x-1.5 cursor-pointer"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Generate Generative Redesign</span>
+              </Link>
+            </div>
           </div>
         </FadeIn>
+
+        {/* Export Suite Modal */}
+        <ExportReportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          activeRoom={activeRoom}
+        />
+
+        {/* Printable PDF Template (Hidden during screen viewing, visible on print) */}
+        <PrintableReportTemplate activeRoom={activeRoom} />
 
         {/* Dashboard Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
