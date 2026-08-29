@@ -52,33 +52,33 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full glass-panel border-b border-white/5 px-6 py-4 flex items-center justify-between bg-slate-950/20 backdrop-blur-md">
+    <header className="sticky top-0 z-30 w-full border-b border-[#E8E2D8] px-6 py-3.5 flex items-center justify-between bg-white/90 backdrop-blur-md text-[#1F1A17] shadow-sm">
       {/* Brand & Page Header */}
       <div className="flex items-center space-x-5">
         {/* Logo Brand area */}
         <div className="flex items-center space-x-2 shrink-0">
-          <div className="p-2 bg-gradient-to-tr from-violet-600 to-cyan-500 rounded-xl shadow-lg shadow-violet-500/20">
-            <Flame className="h-4.5 w-4.5 text-white animate-pulse" />
+          <div className="p-2 bg-gradient-to-tr from-[#D4AF37] to-[#C86D51] rounded-xl shadow-md shadow-[#D4AF37]/20">
+            <Flame className="h-4.5 w-4.5 text-white" />
           </div>
           <div className="hidden sm:block">
-            <h1 className="text-sm font-black tracking-widest text-slate-100 uppercase">
+            <h1 className="text-sm font-black tracking-widest text-[#1F1A17] uppercase">
               Matter AI
             </h1>
-            <p className="text-[8px] text-cyan-400 tracking-widest uppercase font-semibold leading-none mt-0.5">
+            <p className="text-[8px] text-[#B8860B] tracking-widest uppercase font-semibold leading-none mt-0.5">
               Spatial OS
             </p>
           </div>
         </div>
 
         {/* Separator Line */}
-        <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
+        <div className="h-6 w-[1px] bg-[#E8E2D8] hidden sm:block" />
 
         {/* Active Title */}
         <div>
-          <h2 className="text-base font-extrabold tracking-tight text-slate-100 flex items-center gap-1.5">
+          <h2 className="text-base font-extrabold tracking-tight text-[#1F1A17] flex items-center gap-1.5">
             {getPageTitle()}
           </h2>
-          <p className="text-[10px] text-slate-400 hidden md:block mt-0.5 max-w-md truncate">
+          <p className="text-[10px] text-[#6E655F] hidden md:block mt-0.5 max-w-md truncate">
             {getPageSubtitle()}
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function Navbar() {
       {/* Action Controllers */}
       <div className="flex items-center space-x-3.5">
         {/* Active Mode indicator badge */}
-        <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-950/40 border border-white/5 text-[10px] font-bold text-slate-300">
+        <div className="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#F4F0EA] border border-[#E8E2D8] text-[10px] font-bold text-[#6E655F]">
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
           <span>Active Layer:</span>
           <span className="text-cyan-400 font-extrabold uppercase tracking-wider">

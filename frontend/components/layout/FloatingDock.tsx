@@ -33,8 +33,8 @@ export default function FloatingDock() {
       <nav 
         className={cn(
           "relative flex items-center justify-center gap-1.5 md:gap-3 px-4 py-3 rounded-3xl",
-          "glass-panel shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/8 backdrop-blur-2xl",
-          "bg-slate-950/70 select-none transition-all duration-300"
+          "shadow-xl border border-[#E8E2D8] backdrop-blur-2xl text-[#1F1A17]",
+          "bg-white/90 select-none transition-all duration-300"
         )}
       >
         {navigationItems.map((item, index) => {
@@ -58,7 +58,7 @@ export default function FloatingDock() {
               {isActive && (
                 <motion.div
                   layoutId="active-nav-pill"
-                  className="absolute inset-0 bg-gradient-to-r from-violet-600/90 to-cyan-500/90 rounded-2xl -z-10 shadow-[0_0_20px_rgba(139,92,246,0.4)]"
+                  className="absolute inset-0 bg-gradient-to-r from-[#D4AF37] to-[#C86D51] rounded-2xl -z-10 shadow-md shadow-[#D4AF37]/30"
                   transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}

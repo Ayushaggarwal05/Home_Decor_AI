@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRoomStore } from '@/store/roomStore';
 import { roomService } from '@/services/room.service';
 import { useRoomPolling } from '@/hooks/useRoomPolling';
@@ -12,18 +12,12 @@ import ImagePreview from '@/components/upload/ImagePreview';
 import PromptInput from '@/components/upload/PromptInput';
 import UploadProgress from '@/components/upload/UploadProgress';
 import { CameraGuidanceBanner } from '@/components/upload/CameraGuidanceBanner';
+import { SpaceTypeSelector } from '@/components/upload/SpaceTypeSelector';
+import { StylePresetSelector } from '@/components/upload/StylePresetSelector';
+import { RoomScaleSelector } from '@/components/upload/RoomScaleSelector';
 import { useRouter } from 'next/navigation';
-import { Compass } from 'lucide-react';
+import { Compass, Sparkles, Layers, Sliders, ArrowRight } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-const STYLE_PRESETS = [
-  'Modern Minimalist',
-  'Japandi Harmony',
-  'Industrial Loft',
-  'Scandinavian Crisp',
-  'Mid-Century Chic',
-  'Neo-Classical Luxury',
-];
 
 export default function UploadPage() {
   const router = useRouter();
@@ -47,6 +41,11 @@ export default function UploadPage() {
   } = useRoomStore();
 
   const [roomName, setRoomName] = React.useState('');
+  const [dimensions, setDimensions] = useState<{ length: number; width: number; unit: 'ft' | 'm' }>({
+    length: 16,
+    width: 20,
+    unit: 'ft'
+  });
 
   // Once room is created, start polling for analysis
   useRoomPolling({ roomId: activeRoomId, enabled: uploadStatus === 'done' });
@@ -105,122 +104,139 @@ export default function UploadPage() {
   return (
     <DashboardShell>
       <PageContainer>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Image upload */}
-          <div className="lg:col-span-7 space-y-6">
-            <CameraGuidanceBanner />
-
-            <div className="glass-panel border rounded-3xl p-6 space-y-4">
-              <div>
-                <h3 className="text-base font-bold text-foreground">
-                  1. Mount Spatial Photo
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Drag and drop a raw landscape photograph of your room
-                  environment
-                </p>
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-white border border-[#E8E2D8] shadow-sm">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/15 text-[#B8860B] text-xs font-bold border border-[#D4AF37]/30">
+                <Layers className="h-3.5 w-3.5" />
+                <span>Spatial Project Studio</span>
               </div>
-
-              {uploadPreview ? <ImagePreview /> : <UploadDropzone />}
+              <h2 className="text-xl sm:text-2xl font-black text-[#1F1A17] tracking-tight">
+                Create New Room Environment Scan
+              </h2>
+              <p className="text-xs text-[#6E655F]">
+                Mount landscape room photograph and set design heuristics for 3D AI spatial indexing.
+              </p>
             </div>
 
-            {isPending && <UploadProgress />}
+            <div className="shrink-0 w-full sm:w-auto">
+              <CameraGuidanceBanner />
+            </div>
           </div>
 
-          {/* Right Column: Metadata setup */}
-          <div className="lg:col-span-5">
-            <form
-              onSubmit={handleSubmit}
-              className="glass-panel border rounded-3xl p-6 space-y-6"
-            >
-              <div>
-                <h3 className="text-base font-bold text-foreground">
-                  2. Set Core Dimensions
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Configure categories to index model heuristics
-                </p>
-              </div>
+          {/* Asymmetric Studio Canvas Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* LEFT COLUMN: 7 Columns (Primary Photo Stage & Prompt) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Photo Stage */}
+              <div className="bg-white border border-[#E8E2D8] rounded-3xl p-6 space-y-4 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-[#1F1A17]">
+                      1. Photo Stage Canvas
+                    </h3>
+                    <p className="text-xs text-[#6E655F] mt-0.5">
+                      Upload raw landscape photo of your room environment
+                    </p>
+                  </div>
 
-              {/* Room Name */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="room-name"
-                  className="text-xs font-bold text-muted-foreground uppercase"
-                >
-                  Room Name or Label
-                </label>
-                <input
-                  id="room-name"
-                  type="text"
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                  placeholder="e.g. Master Bedroom, Primary Living Hall"
-                  disabled={!isIdle}
-                  className="w-full px-4 py-3 rounded-xl bg-input border border-border text-foreground text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Room Type */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="room-type"
-                    className="text-xs font-bold text-muted-foreground uppercase"
-                  >
-                    Space Type
-                  </label>
-                  <select
-                    id="room-type"
-                    value={roomType}
-                    onChange={(e) => setRoomType(e.target.value as typeof roomType)}
-                    disabled={!isIdle}
-                    className="w-full px-4 py-3 rounded-xl bg-input border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50"
-                  >
-                    <option value="living_room">Living Room</option>
-                    <option value="bedroom">Bedroom</option>
-                    <option value="office">Home Office</option>
-                    <option value="kitchen">Kitchen</option>
-                    <option value="dining">Dining Room</option>
-                  </select>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#B8860B] bg-[#D4AF37]/15 px-3 py-1 rounded-full border border-[#D4AF37]/30">
+                    {uploadPreview ? 'Scan Ready ✓' : '16:9 Landscape Mode'}
+                  </span>
                 </div>
 
-                {/* Style */}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="style-preference"
-                    className="text-xs font-bold text-muted-foreground uppercase"
-                  >
-                    Style Target Preset
-                  </label>
-                  <select
-                    id="style-preference"
-                    value={stylePreference}
-                    onChange={(e) => setStylePreference(e.target.value)}
-                    disabled={!isIdle}
-                    className="w-full px-4 py-3 rounded-xl bg-input border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary disabled:opacity-50"
-                  >
-                    {STYLE_PRESETS.map((style) => (
-                      <option key={style} value={style}>
-                        {style}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {uploadPreview ? <ImagePreview /> : <UploadDropzone />}
               </div>
 
-              <PromptInput />
+              {/* Progress Bar during Upload */}
+              {isPending && <UploadProgress />}
 
-              <button
-                id="upload-submit-btn"
-                type="submit"
-                disabled={!uploadPreview || !isIdle}
-                className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-90 disabled:opacity-40 disabled:hover:opacity-40 text-white font-bold rounded-2xl flex items-center justify-center space-x-2 shadow-lg transition-all cursor-pointer"
+              {/* AI Design Prompt Input Box */}
+              <div className="bg-white border border-[#E8E2D8] rounded-3xl p-6 space-y-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#1F1A17]">
+                    Custom Design Instructions & Notes
+                  </h3>
+                  <span className="text-[10px] text-[#6E655F]">Optional</span>
+                </div>
+                <PromptInput />
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: 5 Columns (Controls & Launch CTA) */}
+            <div className="lg:col-span-5">
+              <form
+                onSubmit={handleSubmit}
+                className="bg-white border border-[#E8E2D8] rounded-3xl p-6 space-y-5 shadow-sm"
               >
-                <Compass className="h-4 w-4" />
-                <span>Initialize Spatial Audit</span>
-              </button>
-            </form>
+                <div className="flex items-center justify-between border-b border-[#E8E2D8] pb-4">
+                  <div>
+                    <h3 className="text-base font-bold text-[#1F1A17]">
+                      2. Project Heuristics
+                    </h3>
+                    <p className="text-xs text-[#6E655F] mt-0.5">
+                      Configure space type & target aesthetic
+                    </p>
+                  </div>
+
+                  <Sliders className="h-4 w-4 text-[#B8860B]" />
+                </div>
+
+                {/* Room Name */}
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="room-name"
+                    className="text-xs font-bold text-[#6E655F] uppercase tracking-wider block"
+                  >
+                    Project Label
+                  </label>
+                  <input
+                    id="room-name"
+                    type="text"
+                    value={roomName}
+                    onChange={(e) => setRoomName(e.target.value)}
+                    placeholder="e.g. Primary Living Room, Executive Office"
+                    disabled={!isIdle}
+                    className="w-full px-4 py-3 rounded-xl bg-white border border-[#E8E2D8] text-[#1F1A17] text-xs placeholder:text-[#9E948B] focus:outline-none focus:ring-1 focus:ring-[#D4AF37] focus:border-[#D4AF37] disabled:opacity-50"
+                  />
+                </div>
+
+                {/* Space Category Visual Selector */}
+                <SpaceTypeSelector
+                  value={roomType}
+                  onChange={(type) => setRoomType(type)}
+                  disabled={!isIdle}
+                />
+
+                {/* Style Target Visual Selector */}
+                <StylePresetSelector
+                  value={stylePreference}
+                  onChange={(style) => setStylePreference(style)}
+                  disabled={!isIdle}
+                />
+
+                {/* Optional Room Scale Selector */}
+                <RoomScaleSelector
+                  length={dimensions.length}
+                  width={dimensions.width}
+                  unit={dimensions.unit}
+                  onDimensionsChange={(l, w, u) => setDimensions({ length: l, width: w, unit: u })}
+                  disabled={!isIdle}
+                />
+
+                {/* Primary Launch Action CTA */}
+                <button
+                  id="upload-submit-btn"
+                  type="submit"
+                  disabled={!uploadPreview || !isIdle}
+                  className="w-full py-4 bg-gradient-to-r from-[#D4AF37] via-[#C86D51] to-[#768A75] hover:opacity-95 disabled:opacity-40 disabled:hover:opacity-40 text-white font-black rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-[#D4AF37]/20 transition-all cursor-pointer text-xs uppercase tracking-wider mt-2"
+                >
+                  <Compass className="h-4.5 w-4.5" />
+                  <span>Initialize AI Spatial Audit</span>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </PageContainer>

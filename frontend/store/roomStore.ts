@@ -79,7 +79,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   compareRoomIds: [],
 
   uiPreferences: {
-    theme: 'dark',
+    theme: 'light',
     showGridOverlay: true,
     showHeatmap: true,
     showSymmetryAxes: false,

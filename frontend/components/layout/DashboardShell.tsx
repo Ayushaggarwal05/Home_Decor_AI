@@ -15,49 +15,18 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
   // Determine active background configuration based on active page route
   const getBgConfig = () => {
-    if (pathname.includes('/research')) {
-      // Spatial Lab: neural blue + cyan
-      return {
-        ambient: 'from-cyan-950/20 via-slate-950 to-blue-950/20',
-        glow1: 'bg-cyan-500/10 shadow-[0_0_120px_rgba(6,182,212,0.15)]',
-        glow2: 'bg-blue-500/8 shadow-[0_0_120px_rgba(37,99,235,0.1)]',
-      };
-    } else if (pathname.includes('/redesign')) {
-      // AI Redesign: warm cinematic orange
-      return {
-        ambient: 'from-amber-950/15 via-slate-950 to-rose-950/15',
-        glow1: 'bg-amber-600/8 shadow-[0_0_120px_rgba(217,119,6,0.12)]',
-        glow2: 'bg-rose-500/6 shadow-[0_0_120px_rgba(244,63,94,0.08)]',
-      };
-    } else if (pathname.includes('/compare')) {
-      // Compare Studio: monochrome premium contrast
-      return {
-        ambient: 'from-slate-900/40 via-slate-950 to-zinc-900/40',
-        glow1: 'bg-slate-400/5 shadow-[0_0_120px_rgba(148,163,184,0.08)]',
-        glow2: 'bg-slate-600/5 shadow-[0_0_120px_rgba(71,85,105,0.06)]',
-      };
-    } else if (pathname.includes('/studio')) {
-      // Studio: deep graphite + purple glow
-      return {
-        ambient: 'from-violet-950/20 via-slate-950 to-fuchsia-950/10',
-        glow1: 'bg-violet-600/10 shadow-[0_0_120px_rgba(139,92,246,0.15)]',
-        glow2: 'bg-cyan-500/6 shadow-[0_0_120px_rgba(6,182,212,0.08)]',
-      };
-    } else {
-      // Default / Environment / Settings / Create Space
-      return {
-        ambient: 'from-indigo-950/15 via-slate-950 to-slate-950',
-        glow1: 'bg-indigo-600/8 shadow-[0_0_120px_rgba(99,102,241,0.12)]',
-        glow2: 'bg-violet-500/6 shadow-[0_0_120px_rgba(139,92,246,0.08)]',
-      };
-    }
+    return {
+      ambient: 'from-[#F7F3EC] via-[#FAF8F5] to-[#F4EFE6]',
+      glow1: 'bg-amber-500/5 shadow-[0_0_120px_rgba(212,175,55,0.08)]',
+      glow2: 'bg-emerald-500/5 shadow-[0_0_120px_rgba(118,138,117,0.08)]',
+    };
   };
 
   const bg = getBgConfig();
 
   return (
-    <div className="min-h-screen relative flex flex-col text-foreground overflow-x-hidden selection:bg-violet-500/30 selection:text-violet-200 bg-slate-950">
-      {/* Cinematic flowing ambient background layer */}
+    <div className="min-h-screen relative flex flex-col text-[#1F1A17] overflow-x-hidden selection:bg-amber-500/20 selection:text-amber-900 bg-[#FAF8F5]">
+      {/* Organic warm ambient background layer */}
       <div className={`absolute inset-0 bg-gradient-to-tr ${bg.ambient} transition-all duration-1000 -z-30`} />
 
       {/* Atmospheric glowing orbs */}
