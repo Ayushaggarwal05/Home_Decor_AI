@@ -21,7 +21,7 @@
 			"com.tldraw.shape.text": 4,
 			"com.tldraw.shape.bookmark": 2,
 			"com.tldraw.shape.draw": 5,
-			"com.tldraw.shape.geo": 11,
+			"com.tldraw.shape.geo": 12,
 			"com.tldraw.shape.note": 13,
 			"com.tldraw.shape.line": 5,
 			"com.tldraw.shape.frame": 1,
@@ -205,9 +205,9 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 7275.050235526332,
-			"y": 503.21087399305634,
-			"z": 0.14232139294605162,
+			"x": 8158.232756255377,
+			"y": 2254.6444649897217,
+			"z": 0.05071496594609923,
 			"meta": {},
 			"id": "camera:page:page",
 			"typeName": "camera"
@@ -243,7 +243,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a55Ibf0V",
@@ -337,15 +339,17 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "aCh2IatV",
 			"typeName": "shape"
 		},
 		{
-			"x": -5937.90418322177,
-			"y": 379.1428031716355,
+			"x": -7748.020508460663,
+			"y": 485.6213313713765,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -881,7 +885,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a6lzLEll",
@@ -1017,7 +1023,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a6zzrzggr",
@@ -1153,7 +1161,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a6zcnDTj",
@@ -1176,9 +1186,7 @@
 		{
 			"followingUserId": null,
 			"opacityForNextShape": 1,
-			"stylesForNextShape": {
-				"tldraw:size": "xl"
-			},
+			"stylesForNextShape": {},
 			"brush": null,
 			"scribbles": [],
 			"cursor": {
@@ -1192,8 +1200,8 @@
 			"screenBounds": {
 				"x": 0,
 				"y": 0,
-				"w": 880,
-				"h": 548
+				"w": 798.4000244140625,
+				"h": 528
 			},
 			"insets": [
 				false,
@@ -1294,7 +1302,9 @@
 							"type": "paragraph"
 						}
 					]
-				}
+				},
+				"flipX": false,
+				"flipY": false
 			},
 			"parentId": "page:page",
 			"index": "a2Wfd2LV",

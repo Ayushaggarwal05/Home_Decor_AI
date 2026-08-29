@@ -104,42 +104,42 @@ export default function StudioPage() {
       <PageContainer className="space-y-12">
         
         {/* 1️⃣ HERO IMMERSIVE CANVAS */}
-        <section className="relative w-full rounded-3xl overflow-hidden glass-panel border border-white/5 bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-950/80 p-8 sm:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(139,92,246,0.1),transparent_40%)] pointer-events-none" />
+        <section className="relative w-full rounded-3xl overflow-hidden border border-[#E8E2D8] bg-white p-8 sm:p-12 shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FDFBF7] via-white to-[#F9F5EE] pointer-events-none" />
           
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-center relative z-10">
             <div className="lg:col-span-3 space-y-6">
               {user && (
-                <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/5 border border-white/8 text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">
-                  <span className="h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
+                <div className="inline-flex items-center space-x-2.5 px-3.5 py-1.5 rounded-full bg-[#F4F0EA] border border-[#E8E2D8] text-xs font-bold text-[#6E655F] uppercase tracking-widest shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse" />
                   <span>Authorized Studio User: {user.fullName || user.email}</span>
                 </div>
               )}
 
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight text-white">
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight text-[#1F1A17]">
                 Designing spaces with{' '}
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-cyan-400 to-indigo-400">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#C86D51] to-[#768A75]">
                   spatial intelligence.
                 </span>
               </h1>
 
-              <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#6E655F] max-w-xl leading-relaxed">
                 Welcome to Matter Studio. Initialize a neural audit of your environment, optimize furniture layouts with genetic search parameters, or render AI-powered interior redesign styles in real time.
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2">
                 <Link
                   href="/upload"
-                  className="px-5 py-3 bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-95 text-white text-xs font-bold rounded-2xl flex items-center space-x-2 shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all cursor-pointer"
+                  className="px-6 py-3.5 bg-gradient-to-r from-[#D4AF37] via-[#C86D51] to-[#768A75] hover:opacity-95 text-white text-xs font-black rounded-2xl flex items-center space-x-2 shadow-lg shadow-[#D4AF37]/20 transition-all cursor-pointer transform hover:-translate-y-0.5"
                 >
                   <Plus className="h-4.5 w-4.5" />
                   <span>Create Space</span>
                 </Link>
                 <Link
                   href="/research"
-                  className="px-5 py-3 border border-white/10 hover:border-white/20 bg-white/5 text-slate-300 hover:text-white text-xs font-bold rounded-2xl flex items-center space-x-2 transition-all cursor-pointer"
+                  className="px-6 py-3.5 border border-[#E8E2D8] bg-[#F4F0EA] hover:bg-[#EAE4DC] text-[#1F1A17] text-xs font-bold rounded-2xl flex items-center space-x-2 transition-all cursor-pointer"
                 >
-                  <Compass className="h-4.5 w-4.5" />
+                  <Compass className="h-4.5 w-4.5 text-[#B8860B]" />
                   <span>Explore Spatial Lab</span>
                 </Link>
               </div>
@@ -151,16 +151,16 @@ export default function StudioPage() {
                 initial={{ rotate: -6, y: 10 }}
                 animate={{ y: [0, -10, 0] }}
                 transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                className="absolute w-44 h-48 rounded-2xl glass-panel border border-white/10 overflow-hidden shadow-2xl origin-bottom-left z-10"
+                className="absolute w-48 h-52 rounded-2xl bg-white border border-[#E8E2D8] overflow-hidden shadow-xl origin-bottom-left z-10"
               >
                 <img 
                   src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=400&q=80" 
                   alt="Original layout" 
                   className="w-full h-2/3 object-cover brightness-90"
                 />
-                <div className="p-3 text-[10px] bg-slate-950/80">
-                  <p className="font-bold text-white">Original Space</p>
-                  <p className="text-slate-400 mt-0.5">Symmetry score: 58%</p>
+                <div className="p-3 text-[10px] bg-[#FAF8F5]">
+                  <p className="font-bold text-[#1F1A17]">Original Space Scan</p>
+                  <p className="text-[#6E655F] mt-0.5">Symmetry score: 58%</p>
                 </div>
               </motion.div>
 
@@ -168,19 +168,19 @@ export default function StudioPage() {
                 initial={{ rotate: 8, x: 50, y: -10 }}
                 animate={{ y: [0, 10, 0] }}
                 transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
-                className="absolute w-44 h-48 rounded-2xl border border-white/15 overflow-hidden shadow-2xl shadow-cyan-500/10 origin-bottom-right z-20"
+                className="absolute w-48 h-52 rounded-2xl bg-white border border-[#D4AF37]/50 overflow-hidden shadow-xl shadow-[#D4AF37]/15 origin-bottom-right z-20"
               >
                 <img 
                   src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=400&q=80" 
                   alt="Optimized layout" 
                   className="w-full h-2/3 object-cover"
                 />
-                <div className="p-3 text-[10px] bg-slate-950/80 border-t border-white/5">
+                <div className="p-3 text-[10px] bg-[#FAF8F5] border-t border-[#E8E2D8]">
                   <div className="flex justify-between items-center">
-                    <p className="font-bold text-cyan-400">Japandi Redesign</p>
-                    <Sparkles className="h-3 w-3 text-violet-400 animate-pulse" />
+                    <p className="font-bold text-[#B8860B]">Japandi Redesign</p>
+                    <Sparkles className="h-3 w-3 text-[#D4AF37] animate-pulse" />
                   </div>
-                  <p className="text-slate-400 mt-0.5">Accessibility: 84%</p>
+                  <p className="text-[#6E655F] mt-0.5">Accessibility: 84%</p>
                 </div>
               </motion.div>
             </div>
@@ -194,11 +194,11 @@ export default function StudioPage() {
           <section className="xl:col-span-3 space-y-6">
             <div className="flex justify-between items-end">
               <div>
-                <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-violet-400" />
+                <h3 className="text-lg font-extrabold text-[#1F1A17] flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-[#B8860B]" />
                   <span>Active Spaces</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-[#6E655F] mt-0.5">
                   Your computational environments and optimization snapshots
                 </p>
               </div>
@@ -209,30 +209,30 @@ export default function StudioPage() {
                 {[1, 2, 3].map((n) => (
                   <div
                     key={n}
-                    className="glass-panel border rounded-3xl aspect-[1.1] animate-pulse p-4 space-y-4"
+                    className="bg-white border border-[#E8E2D8] rounded-3xl aspect-[1.1] animate-pulse p-4 space-y-4 shadow-sm"
                   >
-                    <div className="w-full h-1/2 bg-white/5 rounded-2xl" />
-                    <div className="h-4 bg-white/5 rounded w-2/3" />
-                    <div className="h-3 bg-white/5 rounded w-1/3" />
+                    <div className="w-full h-1/2 bg-[#F4F0EA] rounded-2xl" />
+                    <div className="h-4 bg-[#F4F0EA] rounded w-2/3" />
+                    <div className="h-3 bg-[#F4F0EA] rounded w-1/3" />
                   </div>
                 ))}
               </div>
             ) : activeRooms.length === 0 ? (
-              <div className="glass-panel border rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4 bg-white/[0.02]">
-                <div className="p-4 bg-white/5 rounded-full text-slate-400">
+              <div className="bg-white border border-[#E8E2D8] rounded-3xl p-12 text-center flex flex-col items-center justify-center space-y-4 shadow-sm">
+                <div className="p-4 bg-[#F4F0EA] rounded-full text-[#B8860B]">
                   <Grid className="h-8 w-8" />
                 </div>
                 <div>
-                  <h4 className="text-base font-bold text-foreground">
+                  <h4 className="text-base font-bold text-[#1F1A17]">
                     No Spaces Mapped Yet
                   </h4>
-                  <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                  <p className="text-xs text-[#6E655F] mt-1 max-w-sm">
                     Upload an environment picture to trigger coordinate mapping and spatial diagnostics.
                   </p>
                 </div>
                 <Link
                   href="/upload"
-                  className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all flex items-center space-x-1 shadow-md cursor-pointer"
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#D4AF37] via-[#C86D51] to-[#768A75] text-white text-xs font-bold rounded-xl hover:opacity-95 transition-all flex items-center space-x-1.5 shadow-md shadow-[#D4AF37]/20 cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Initialize Space</span>
@@ -251,10 +251,10 @@ export default function StudioPage() {
                   <div className="flex justify-center pt-2">
                     <button
                       onClick={() => setVisibleCount((prev) => prev + 3)}
-                      className="px-6 py-2.5 bg-white/5 border border-white/10 hover:border-white/20 text-slate-200 hover:text-white text-xs font-bold rounded-2xl flex items-center space-x-1.5 shadow-md transition-all cursor-pointer hover:bg-white/10"
+                      className="px-6 py-2.5 bg-white border border-[#E8E2D8] hover:border-[#D4AF37] text-[#1F1A17] text-xs font-bold rounded-2xl flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer hover:bg-[#FDFBF7]"
                     >
                       <span>Show More Spaces</span>
-                      <span className="text-[10px] text-muted-foreground">({activeRooms.length - visibleCount} remaining)</span>
+                      <span className="text-[10px] text-[#B8860B]">({activeRooms.length - visibleCount} remaining)</span>
                     </button>
                   </div>
                 )}
@@ -265,18 +265,18 @@ export default function StudioPage() {
           {/* 3️⃣ LIVE AI ACTIVITY STREAM */}
           <section className="xl:col-span-1 space-y-6">
             <div>
-              <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                <Cpu className="h-5 w-5 text-cyan-400" />
+              <h3 className="text-lg font-extrabold text-[#1F1A17] flex items-center gap-2">
+                <Cpu className="h-5 w-5 text-[#B8860B]" />
                 <span>AI Activity Stream</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-[#6E655F] mt-0.5">
                 Real-time spatial diagnostics ticker
               </p>
             </div>
 
-            <div className="glass-panel border border-white/5 rounded-3xl p-5 bg-slate-950/40 min-h-[300px] flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-3 pointer-events-none">
-                <Activity className="h-4 w-4 text-cyan-500 animate-pulse" />
+            <div className="bg-white border border-[#E8E2D8] rounded-3xl p-5 shadow-sm min-h-[320px] flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 pointer-events-none">
+                <Activity className="h-4 w-4 text-[#B8860B] animate-pulse" />
               </div>
 
               {/* Dynamic live logs list */}
@@ -289,10 +289,10 @@ export default function StudioPage() {
                     transition={{ duration: 0.4 }}
                     className="flex items-start space-x-2.5 text-[11px]"
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full mt-1.5 shrink-0 ${index === 0 ? 'bg-cyan-400 animate-ping shadow-[0_0_8px_#06b6d4]' : 'bg-slate-700'}`} />
+                    <span className={`h-2 w-2 rounded-full mt-1 shrink-0 ${index === 0 ? 'bg-[#D4AF37] animate-ping' : 'bg-[#E8E2D8]'}`} />
                     <span className={cn(
                       "font-mono leading-relaxed",
-                      index === 0 ? "text-cyan-300 font-bold" : "text-slate-500"
+                      index === 0 ? "text-[#1F1A17] font-bold" : "text-[#6E655F]"
                     )}>
                       {log}
                     </span>
@@ -301,12 +301,12 @@ export default function StudioPage() {
               </div>
 
               {/* System diagnostics info widget */}
-              <div className="border-t border-white/5 pt-4 mt-8 flex justify-between items-center text-[10px]">
-                <div className="flex items-center space-x-1.5 text-slate-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span className="font-mono">Engine: Operational</span>
+              <div className="border-t border-[#E8E2D8] pt-4 mt-8 flex justify-between items-center text-[10px]">
+                <div className="flex items-center space-x-1.5 text-[#6E655F] font-mono">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Engine: Operational</span>
                 </div>
-                <span className="text-slate-500 font-mono">Tasks: {activeLog}</span>
+                <span className="text-[#B8860B] font-mono">Tasks: {activeLog}</span>
               </div>
             </div>
           </section>
@@ -315,11 +315,11 @@ export default function StudioPage() {
         {/* 4️⃣ INSPIRATION EXPLORER */}
         <section className="space-y-6 pt-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-amber-400" />
+            <h3 className="text-lg font-extrabold text-[#1F1A17] flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#D4AF37]" />
               <span>Inspiration Moods</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-[#6E655F] mt-0.5">
               Explore custom spatial styles and conceptual moodboards
             </p>
           </div>
@@ -334,7 +334,7 @@ export default function StudioPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
                 whileHover={{ y: -6 }}
-                className="min-w-[280px] sm:min-w-[340px] max-w-[340px] rounded-3xl overflow-hidden glass-panel border border-white/5 bg-slate-900/20 shadow-xl snap-start flex flex-col justify-between group cursor-pointer transition-all duration-300"
+                className="min-w-[280px] sm:min-w-[340px] max-w-[340px] rounded-3xl overflow-hidden bg-white border border-[#E8E2D8] hover:border-[#D4AF37] shadow-sm snap-start flex flex-col justify-between group cursor-pointer transition-all duration-300"
               >
                 <div className="relative aspect-[1.5] overflow-hidden">
                   <img
@@ -342,16 +342,16 @@ export default function StudioPage() {
                     alt={mood.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent" />
                 </div>
                 
-                <div className="p-5 space-y-3.5 bg-slate-950/60 flex-1 flex flex-col justify-between border-t border-white/5">
+                <div className="p-5 space-y-3.5 bg-white flex-1 flex flex-col justify-between border-t border-[#E8E2D8]">
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-bold text-slate-100 text-sm">{mood.title}</h4>
-                      <ArrowUpRight className="h-4 w-4 text-slate-500 group-hover:text-white transition-colors" />
+                      <h4 className="font-bold text-[#1F1A17] text-sm group-hover:text-[#B8860B] transition-colors">{mood.title}</h4>
+                      <ArrowUpRight className="h-4 w-4 text-[#6E655F] group-hover:text-[#1F1A17] transition-colors" />
                     </div>
-                    <p className="text-[11px] text-slate-400 leading-normal">
+                    <p className="text-[11px] text-[#6E655F] leading-normal">
                       {mood.description}
                     </p>
                   </div>
@@ -360,7 +360,7 @@ export default function StudioPage() {
                     {mood.tags.map(tag => (
                       <span 
                         key={tag} 
-                        className="px-2 py-0.5 text-[8px] font-semibold bg-white/5 border border-white/5 text-slate-300 rounded-md"
+                        className="px-2.5 py-0.5 text-[8px] font-semibold bg-[#F4F0EA] border border-[#E8E2D8] text-[#1F1A17] rounded-md"
                       >
                         {tag}
                       </span>

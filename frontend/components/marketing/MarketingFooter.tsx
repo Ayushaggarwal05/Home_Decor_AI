@@ -21,7 +21,7 @@ export default function MarketingFooter() {
       <div className="max-w-7xl mx-auto space-y-14">
         
         {/* Top Newsletter & Subscription Banner */}
-        <div className="glass-panel p-8 rounded-3xl border border-white/10 bg-slate-900/60 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
+        <div className="p-8 rounded-3xl border border-white/10 bg-slate-900/80 backdrop-blur-xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
           <div className="space-y-1.5 text-center md:text-left">
             <h3 className="text-lg font-bold text-white flex items-center justify-center md:justify-start space-x-2">
               <Sparkles className="h-4.5 w-4.5 text-violet-400" />

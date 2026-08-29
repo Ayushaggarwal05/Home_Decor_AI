@@ -14,7 +14,7 @@ export function SocialAuthButtons() {
     <div className="space-y-3">
       <div className="relative flex items-center justify-center my-4">
         <div className="border-t border-white/10 w-full" />
-        <span className="bg-slate-950/90 px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-widest absolute">
+        <span className="bg-slate-900 px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-widest absolute">
           Or continue with
         </span>
       </div>

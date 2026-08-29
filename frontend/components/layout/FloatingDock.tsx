@@ -50,11 +50,11 @@ export default function FloatingDock() {
               className={cn(
                 "relative flex items-center gap-2 px-3.5 py-2.5 rounded-2xl text-xs md:text-sm font-semibold transition-colors duration-300",
                 isActive 
-                  ? "text-primary-foreground font-bold" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-white font-bold" 
+                  : "text-[#6E655F] hover:text-[#1F1A17]"
               )}
             >
-              {/* Sliding Active Background (Framer Motion layoutId) */}
+              {/* Sliding Active Background (Champagne Gold to Terracotta Gradient) */}
               {isActive && (
                 <motion.div
                   layoutId="active-nav-pill"
@@ -67,7 +67,7 @@ export default function FloatingDock() {
               {hoveredIndex === index && !isActive && (
                 <motion.div
                   layoutId="hover-nav-pill"
-                  className="absolute inset-0 bg-white/5 rounded-2xl -z-10 border border-white/5"
+                  className="absolute inset-0 bg-[#F4F0EA] rounded-2xl -z-10 border border-[#E8E2D8]"
                   transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 />
               )}

@@ -37,7 +37,7 @@ export default function LoginPage() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="glass-panel border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden bg-slate-900/80 backdrop-blur-xl"
+      className="border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden bg-slate-900/90 backdrop-blur-xl"
     >
       {/* Glow Accent */}
       <div className="absolute -top-20 -left-20 w-40 h-40 bg-violet-600/15 rounded-full blur-2xl pointer-events-none" />
