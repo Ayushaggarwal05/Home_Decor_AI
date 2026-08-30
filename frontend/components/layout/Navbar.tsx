@@ -53,10 +53,11 @@ export default function Navbar() {
   };
 
   return (
-    <div className="sticky top-0 z-40 w-full pt-3 sm:pt-4 pb-2 flex justify-center pointer-events-none">
-      <header className="pointer-events-auto w-[90%] mx-auto border border-white/15 px-6 py-3 flex items-center justify-between bg-slate-900/95 backdrop-blur-2xl text-white shadow-2xl rounded-2xl relative">
-        {/* Glowing top accent edge matching landing page */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent pointer-events-none rounded-t-2xl" />
+    <header className="sticky top-0 z-40 w-full bg-slate-900/95 backdrop-blur-2xl border-b border-white/15 text-white shadow-xl relative font-sans">
+      {/* Glowing bottom accent edge */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent pointer-events-none" />
+
+      <div className="w-full px-4 sm:px-8 lg:px-12 py-4.5 sm:py-5 min-h-[74px] sm:min-h-[80px] flex items-center justify-between relative z-10">
 
         {/* 1️⃣ BRAND & ACTIVE TITLE */}
         <div className="flex items-center space-x-4 relative z-10">
@@ -243,7 +244,7 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
         </div>
-      </header>
-    </div>
+      </div>
+    </header>
   );
 }
