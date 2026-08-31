@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './Navbar';
 import FloatingDock from './FloatingDock';
+import StudioFooter from './StudioFooter';
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -54,7 +55,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
       <Navbar />
 
       {/* Main content wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 w-full relative pb-28">
+      <div className="flex-1 flex flex-col min-w-0 w-full relative">
         <main className="flex-1 flex flex-col">
           <AnimatePresence mode="wait">
             <motion.div
@@ -69,6 +70,9 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             </motion.div>
           </AnimatePresence>
         </main>
+
+        {/* Studio Workspace Footer */}
+        <StudioFooter />
       </div>
 
       {/* Floating Pill Dock Navigation at bottom center */}
