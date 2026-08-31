@@ -84,27 +84,31 @@ export default function StudioPage() {
                 <div className="inline-flex items-center space-x-2.5 px-3.5 py-1.5 rounded-full bg-[#F4F0EA] border border-[#E8E2D8] text-xs font-bold text-[#6E655F] uppercase tracking-widest shadow-sm">
                   <span className="h-2 w-2 rounded-full bg-[#D4AF37] animate-pulse" />
                   <span>
-                    Spatial Intelligence Engine v2.4 • {user.fullName || user.email}
+                    Spatial Intelligence Engine v2.4 •{" "}
+                    {user.fullName || user.email}
                   </span>
                 </div>
               )}
 
-              {/* Stacked Giant Typography matching Landing Page structure */}
-              <div className="space-y-1">
-                <h1 className="text-5xl sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tight text-[#1F1A17] leading-[0.92]">
-                  Spatial
+              {/* Optically Sized Stacked Headline */}
+              <div className="space-y-1 sm:space-y-1.5">
+                <h1 className="text-6xl sm:text-7xl lg:text-[9.5rem] font-black tracking-tight text-slate-900 leading-[0.92]">
+                  Space
                 </h1>
-                <h1 className="text-5xl sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tight text-[#1F1A17] leading-[0.92]">
-                  Intelligence
+                <h1 className="text-6xl sm:text-7xl lg:text-9xl font-black tracking-tight text-slate-900 leading-[0.92]">
+                  Reimagination
                 </h1>
-                <div className="text-2xl sm:text-3xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] to-[#C86D51] tracking-tight pt-2">
-                  Interactive Design Studio
+                <div className="text-2xl sm:text-3xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] to-[#C86D51] tracking-tight pt-3">
+                  With Intelligent Interior Design
                 </div>
               </div>
 
-              {/* Subtitle */}
-              <p className="text-xs sm:text-sm text-[#6E655F] max-w-2xl leading-relaxed font-normal">
-                Initialize a neural spatial audit of your environment to map boundary contours, construct 2D occupancy grids, eliminate furniture clearance bottlenecks via genetic search algorithms, and generate photorealistic AI-powered interior redesigns tailored to your aesthetic style.
+              {/* Expanded Prominent Subtitle */}
+              <p className="text-sm sm:text-base text-[#6E655F] max-w-2xl leading-relaxed font-normal pt-2">
+                Turn room photos into beautifully balanced floorplans with open
+                walkways, natural lighting, and refined aesthetics. Construct 2D
+                occupancy grids and discover collision-free furniture layouts
+                with intelligent spatial planning.
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2">

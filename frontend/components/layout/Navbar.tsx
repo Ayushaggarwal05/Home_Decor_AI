@@ -54,22 +54,22 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-slate-900/95 backdrop-blur-2xl border-b border-white/15 text-white shadow-xl relative font-sans">
-      {/* Glowing bottom accent edge */}
-      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent pointer-events-none" />
+      {/* Glowing bottom golden accent edge */}
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent pointer-events-none" />
 
       <div className="w-full px-4 sm:px-8 lg:px-12 py-4.5 sm:py-5 min-h-[74px] sm:min-h-[80px] flex items-center justify-between relative z-10">
 
         {/* 1️⃣ BRAND & ACTIVE TITLE */}
         <div className="flex items-center space-x-4 relative z-10">
           <Link href="/studio" className="flex items-center space-x-2.5 shrink-0 group">
-            <div className="p-2 bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-500 rounded-xl shadow-md shadow-violet-500/25 group-hover:scale-105 transition-transform duration-300">
+            <div className="p-2 bg-gradient-to-tr from-[#D4AF37] to-[#C86D51] rounded-xl shadow-md shadow-[#D4AF37]/25 group-hover:scale-105 transition-transform duration-300">
               <Flame className="h-5 w-5 text-white animate-pulse" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-base font-black tracking-widest text-white uppercase leading-none">
                 Matter AI
               </h1>
-              <p className="text-[9px] font-medium text-cyan-400 tracking-widest uppercase leading-none mt-1">
+              <p className="text-[9px] font-semibold text-[#D4AF37] tracking-widest uppercase leading-none mt-1">
                 Spatial OS
               </p>
             </div>
@@ -93,9 +93,9 @@ export default function Navbar() {
         <div className="flex items-center space-x-3 relative z-10">
           {/* Active Mode Indicator Badge */}
           <div className="hidden lg:flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-950/60 border border-white/10 text-xs font-normal text-slate-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#06b6d4]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37] animate-pulse shadow-[0_0_8px_#D4AF37]" />
             <span>Active Layer:</span>
-            <span className="text-cyan-400 font-semibold uppercase tracking-wider text-[11px]">
+            <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[11px]">
               {pathname?.includes('research') ? 'Spatial Lab' : 'Studio Engine'}
             </span>
           </div>
@@ -110,7 +110,7 @@ export default function Navbar() {
             {uiPreferences.theme === 'dark' ? (
               <Sun className="h-4 w-4 text-amber-400" />
             ) : (
-              <Moon className="h-4 w-4 text-indigo-400" />
+              <Moon className="h-4 w-4 text-amber-200" />
             )}
           </button>
 
@@ -155,7 +155,7 @@ export default function Navbar() {
                             prev.map((n) => ({ ...n, read: true }))
                           )
                         }
-                        className="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline font-semibold"
+                        className="text-[10px] text-[#D4AF37] hover:text-amber-200 hover:underline font-semibold"
                       >
                         Mark all read
                       </button>
@@ -168,7 +168,7 @@ export default function Navbar() {
                             "p-2.5 rounded-xl text-xs transition-colors border",
                             notif.read
                               ? "bg-slate-950/40 text-slate-400 border-white/5"
-                              : "bg-slate-950/80 text-cyan-200 border-cyan-500/30"
+                              : "bg-slate-950/80 text-amber-100 border-[#D4AF37]/30"
                           )}
                         >
                           <p className="leading-relaxed">{notif.text}</p>
@@ -191,7 +191,7 @@ export default function Navbar() {
               className="flex items-center space-x-2 p-1.5 pr-2.5 rounded-xl border border-white/10 bg-slate-950/40 hover:bg-slate-800/80 transition-all cursor-pointer"
               aria-label="User account menu"
             >
-              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-400 flex items-center justify-center font-extrabold text-white text-xs shadow-sm">
+              <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#D4AF37] to-[#C86D51] flex items-center justify-center font-extrabold text-white text-xs shadow-sm shadow-[#D4AF37]/20">
                 {initials}
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-slate-300" />
@@ -220,7 +220,7 @@ export default function Navbar() {
                         {user?.email || "user@matterstudio.ai"}
                       </p>
                       <div className="pt-1">
-                        <span className="px-2 py-0.5 text-[8px] bg-cyan-500/20 text-cyan-300 rounded font-bold border border-cyan-500/30 uppercase tracking-widest">
+                        <span className="px-2 py-0.5 text-[8px] bg-[#D4AF37]/20 text-[#D4AF37] rounded font-bold border border-[#D4AF37]/30 uppercase tracking-widest">
                           {user?.tier || "Free"} Tier
                         </span>
                       </div>

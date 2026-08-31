@@ -45,3 +45,9 @@ yarn-error.log*
 *.tmp
 *.temp
 .cache/
+
+# ── Confidential Patent & IP Documents ───────────
+PATENT_DISCLOSURE_SPECIFICATION.md
+*PATENT*
+*patent*
+RESEARCH_PAPER_*.md
