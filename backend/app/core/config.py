@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
     CELERY_ALWAYS_EAGER: bool = False
     HF_TOKEN: Optional[str] = None
-    DINO_API_MODEL: str = "google/owlv2-base-patch16-ensemble"
+    OPENROUTER_API_KEY: Optional[str] = None
+    DINO_API_MODEL: str = "qwen/qwen3-vl-30b-a3b-instruct"
 
     # Storage integrations
     CLOUDINARY_CLOUD_NAME: str = "aura_spatial_cloud"

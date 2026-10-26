@@ -666,15 +666,17 @@ class YOLOv8Detector:
                 # Encode image to base64
                 img_b64 = base64.b64encode(image_bytes).decode('utf-8')
                 
-                model_id = getattr(settings, "DINO_API_MODEL", "google/owlv2-base-patch16-ensemble")
+                model_id = getattr(settings, "DINO_API_MODEL", "qwen/qwen3-vl-30b-a3b-instruct")
+                openrouter_key = getattr(settings, "OPENROUTER_API_KEY", None) or (hf_token if hf_token and hf_token.startswith("sk-or-") else None)
+                is_openrouter = bool(openrouter_key)
                 
                 from huggingface_hub import InferenceClient
                 from huggingface_hub.utils import HfHubHTTPError
                 
-                client = InferenceClient(token=hf_token, timeout=25)
+                client = InferenceClient(token=hf_token, timeout=25) if not is_openrouter else None
                 
                 # Determine if we should use VLM chat completion instead of legacy serverless task
-                is_vlm = any(keyword in model_id.lower() for keyword in ["vl-", "vl/", "-vl", "vision", "instruct", "chat"])
+                is_vlm = is_openrouter or any(keyword in model_id.lower() for keyword in ["vl-", "vl/", "-vl", "vision", "instruct", "chat", "qwen"])
                 
                 api_results = None
                 success = False
@@ -720,40 +722,83 @@ class YOLOv8Detector:
                         }
                     ]
                     
-                    for attempt in range(retries):
-                        try:
-                            response = client.chat.completions.create(
-                                model=model_id,
-                                messages=messages,
-                                max_tokens=1000
-                            )
-                            content = response.choices[0].message.content.strip()
-                            print(f"RAW VLM RESPONSE: {content}")
-                            json_str = extract_json_from_text(content)
-                            import json
-                            api_results = json.loads(json_str)
-                            
-                            # If the model wrapped the JSON list in a top-level dictionary, unpack it
-                            if isinstance(api_results, dict):
-                                for val in api_results.values():
-                                    if isinstance(val, list):
-                                        api_results = val
-                                        break
-                                        
-                            success = True
-                            break
-                        except HfHubHTTPError as http_err:
-                            status_code = http_err.response.status_code if http_err.response is not None else None
-                            if status_code == 503:
-                                logger.warning(f"VLM model {model_id} is loading. Retrying in {wait_time}s...")
-                                time.sleep(wait_time)
-                            else:
-                                logger.error(f"VLM API error: {status_code} - {http_err.response.text if http_err.response is not None else ''}")
-                                http_error_logged = True
+                    if is_openrouter:
+                        import requests
+                        headers = {
+                            "Authorization": f"Bearer {openrouter_key}",
+                            "HTTP-Referer": "http://localhost:3000",
+                            "X-Title": "Aura HomeDecor AI"
+                        }
+                        payload = {
+                            "model": model_id,
+                            "messages": messages,
+                            "max_tokens": 1000
+                        }
+                        for attempt in range(retries):
+                            try:
+                                logger.info(f"Calling OpenRouter VLM model '{model_id}' (attempt {attempt+1}/{retries})...")
+                                resp = requests.post(
+                                    "https://openrouter.ai/api/v1/chat/completions",
+                                    headers=headers,
+                                    json=payload,
+                                    timeout=35
+                                )
+                                if resp.status_code == 200:
+                                    resp_data = resp.json()
+                                    content = resp_data["choices"][0]["message"]["content"].strip()
+                                    logger.info(f"OpenRouter VLM inference completed in {time.time() - start_dino:.4f}s.")
+                                    json_str = extract_json_from_text(content)
+                                    import json
+                                    api_results = json.loads(json_str)
+                                    if isinstance(api_results, dict):
+                                        for val in api_results.values():
+                                            if isinstance(val, list):
+                                                api_results = val
+                                                break
+                                    success = True
+                                    break
+                                else:
+                                    logger.error(f"OpenRouter API error {resp.status_code}: {resp.text}")
+                                    http_error_logged = True
+                                    break
+                            except Exception as req_err:
+                                logger.warning(f"Network error on OpenRouter API call: {req_err}. Retrying in 2s...")
+                                time.sleep(2.0)
+                    else:
+                        for attempt in range(retries):
+                            try:
+                                response = client.chat.completions.create(
+                                    model=model_id,
+                                    messages=messages,
+                                    max_tokens=1000
+                                )
+                                content = response.choices[0].message.content.strip()
+                                logger.info(f"RAW VLM RESPONSE: {content}")
+                                json_str = extract_json_from_text(content)
+                                import json
+                                api_results = json.loads(json_str)
+                                
+                                # If the model wrapped the JSON list in a top-level dictionary, unpack it
+                                if isinstance(api_results, dict):
+                                    for val in api_results.values():
+                                        if isinstance(val, list):
+                                            api_results = val
+                                            break
+                                            
+                                success = True
                                 break
-                        except Exception as req_err:
-                            logger.warning(f"Network error on VLM API call: {req_err}. Retrying...")
-                            time.sleep(2.0)
+                            except HfHubHTTPError as http_err:
+                                status_code = http_err.response.status_code if http_err.response is not None else None
+                                if status_code == 503:
+                                    logger.warning(f"VLM model {model_id} is loading. Retrying in {wait_time}s...")
+                                    time.sleep(wait_time)
+                                else:
+                                    logger.error(f"VLM API error: {status_code} - {http_err.response.text if http_err.response is not None else ''}")
+                                    http_error_logged = True
+                                    break
+                            except Exception as req_err:
+                                logger.warning(f"Network error on VLM API call: {req_err}. Retrying...")
+                                time.sleep(2.0)
                 else:
                     api_url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
                     from huggingface_hub.inference._common import RequestParameters
