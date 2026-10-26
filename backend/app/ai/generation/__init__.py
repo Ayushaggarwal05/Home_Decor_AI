@@ -14,11 +14,19 @@ class ImageGenerationInterface:
         self, 
         image_url: str, 
         prompt: str, 
-        style: str
+        style: str,
+        blueprint_id: str = None,
+        blueprint_layout: list = None
     ) -> Tuple[str, List[str]]:
         """
-        Submits image and styling prompts to the generative model.
+        Submits image, styling prompts, and blueprint layout to the generative model.
         Returns:
             Tuple: (redesigned_image_url, list_of_suggested_decor_changes)
         """
-        return self.generator.generate_redesigned_room(image_url, prompt, style)
+        return self.generator.generate_redesigned_room(
+            original_image_url=image_url,
+            prompt=prompt,
+            style=style,
+            blueprint_id=blueprint_id,
+            blueprint_layout=blueprint_layout
+        )

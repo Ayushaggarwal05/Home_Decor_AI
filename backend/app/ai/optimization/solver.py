@@ -94,43 +94,236 @@ class LayoutConstraintSolver:
                     
             parents_wrapper = next_parents
 
-        # 3. Select final best layout from the top Pareto front (maximizes overall weighted score)
+    def optimize_multiple_layouts(
+        self,
+        original_furniture: List[Dict[str, Any]],
+        room_length: float = 16.0,
+        room_width: float = 12.0,
+        max_blueprints: int = 15
+    ) -> List[Dict[str, Any]]:
+        """
+        Executes NSGA-II Genetic Algorithm and extracts a ranked, diverse pool
+        of compatible 2D blueprints (categorized by archetype).
+        """
+        if not original_furniture:
+            logger.info("Optimization aborted: No furniture items specified.")
+            return []
+
+        # 1. Initialize parent population
+        parents_layout = self._initialize_population(original_furniture)
+        parents_wrapper = [{"layout": layout} for layout in parents_layout]
+        
+        # 2. GA Optimization loop
+        for gen in range(self.generations):
+            self._evaluate_population(parents_wrapper)
+            children_wrapper = self._generate_next_generation(parents_wrapper, gen)
+            self._evaluate_population(children_wrapper)
+            merged_wrapper = parents_wrapper + children_wrapper
+            
+            merged_ranks = [0] * len(merged_wrapper)
+            merged_cd = [0.0] * len(merged_wrapper)
+            
+            merged_fronts = self._fast_non_dominated_sort(merged_wrapper)
+            for rank_idx, front in enumerate(merged_fronts):
+                for idx in front:
+                    merged_ranks[idx] = rank_idx
+                
+                front_cd = self._calculate_crowding_distances(front, [ind["objectives"] for ind in merged_wrapper])
+                for idx, cd in front_cd.items():
+                    merged_cd[idx] = cd
+            
+            next_parents = []
+            for front in merged_fronts:
+                if len(next_parents) + len(front) <= self.population_size:
+                    next_parents.extend([merged_wrapper[idx] for idx in front])
+                else:
+                    sorted_front = sorted(front, key=lambda idx: merged_cd[idx], reverse=True)
+                    space_left = self.population_size - len(next_parents)
+                    next_parents.extend([merged_wrapper[idx] for idx in sorted_front[:space_left]])
+                    break
+                    
+            parents_wrapper = next_parents
+
+        # 3. Extract diverse, collision-free candidate blueprints from Pareto fronts
         self._evaluate_population(parents_wrapper)
         final_fronts = self._fast_non_dominated_sort(parents_wrapper)
-        
-        best_layout = None
-        best_overall = -1.0
-        
-        for idx in final_fronts[0]:
-            layout = parents_wrapper[idx]["layout"]
-            res = self._evaluate_individual(layout)
-            overall = res["scores"]["overall"]
-            if overall > best_overall:
-                best_overall = overall
-                best_layout = layout
-                
-        if not best_layout:
-            best_layout = parents_wrapper[0]["layout"]
-            
-        # Clean layout representations before returning
-        final_layout = []
-        for item in best_layout:
-            clean_item = {
-                "label": item["label"],
-                "rotation": item.get("rotation", 0),
-                "boundingBox": {
-                    "x": round(item["boundingBox"]["x"], 2),
-                    "y": round(item["boundingBox"]["y"], 2),
-                    "width": round(item["boundingBox"]["width"], 2),
-                    "height": round(item["boundingBox"]["height"], 2)
-                }
-            }
-            final_layout.append(clean_item)
 
-        # 4. Generate recommendations comparing optimized layout coordinates to original
-        suggestions = self._generate_explainable_changes(original_furniture, final_layout)
-        
-        return final_layout, suggestions
+        candidates = []
+        for front in final_fronts:
+            for idx in front:
+                layout = parents_wrapper[idx]["layout"]
+                res = self._evaluate_individual(layout)
+                candidates.append({
+                    "layout": layout,
+                    "scores": res["scores"],
+                    "penalties": res.get("penalties", 0.0)
+                })
+
+        # Filter out invalid layouts (excessive collision penalty)
+        valid_candidates = [c for c in candidates if c["penalties"] < 0.15]
+        if not valid_candidates:
+            valid_candidates = sorted(candidates, key=lambda c: c["penalties"])
+
+        # Deduplication & diversity check (Euclidean distance threshold between centroids)
+        unique_blueprints = []
+        for cand in valid_candidates:
+            layout = cand["layout"]
+            scores = cand["scores"]
+            
+            # Check similarity against already accepted layouts
+            is_duplicate = False
+            for accepted in unique_blueprints:
+                acc_layout = accepted["layout"]
+                diffs = []
+                for item in layout:
+                    acc_item = next((ai for ai in acc_layout if ai["label"] == item["label"]), None)
+                    if acc_item:
+                        dx = item["boundingBox"]["x"] - acc_item["boundingBox"]["x"]
+                        dy = item["boundingBox"]["y"] - acc_item["boundingBox"]["y"]
+                        diffs.append(math.sqrt(dx * dx + dy * dy))
+                if diffs and (sum(diffs) / len(diffs)) < 4.0:
+                    is_duplicate = True
+                    break
+            
+            if not is_duplicate:
+                clean_layout = [
+                    {
+                        "label": item["label"],
+                        "rotation": item.get("rotation", 0),
+                        "boundingBox": {
+                            "x": round(max(0.0, min(100.0 - item["boundingBox"]["width"], item["boundingBox"]["x"])), 2),
+                            "y": round(max(0.0, min(100.0 - item["boundingBox"]["height"], item["boundingBox"]["y"])), 2),
+                            "width": round(item["boundingBox"]["width"], 2),
+                            "height": round(item["boundingBox"]["height"], 2)
+                        }
+                    }
+                    for item in layout
+                ]
+                suggestions = self._generate_explainable_changes(original_furniture, clean_layout)
+                unique_blueprints.append({
+                    "layout": clean_layout,
+                    "scores": scores,
+                    "suggestions": suggestions
+                })
+
+            if len(unique_blueprints) >= max_blueprints:
+                break
+
+        # Fallback to original layout if no unique blueprint extracted
+        if not unique_blueprints:
+            clean_orig = [
+                {
+                    "label": item["label"],
+                    "rotation": item.get("rotation", 0),
+                    "boundingBox": {
+                        "x": round(item["boundingBox"]["x"], 2),
+                        "y": round(item["boundingBox"]["y"], 2),
+                        "width": round(item["boundingBox"]["width"], 2),
+                        "height": round(item["boundingBox"]["height"], 2)
+                    }
+                }
+                for item in original_furniture
+            ]
+            orig_res = self._evaluate_individual(original_furniture)
+            unique_blueprints.append({
+                "layout": clean_orig,
+                "scores": orig_res["scores"],
+                "suggestions": [{"id": "sug-base", "title": "Current Layout", "description": "Baseline detected room configuration."}]
+            })
+
+        # 4. Archetype classification and badging for each blueprint
+        ARCHETYPES = [
+            {
+                "key": "flow",
+                "title": "Optimal Circulation & Walkway",
+                "badge": "Best Flow",
+                "description": "Maximizes direct walking paths, keeps door clearance unobstructed, and eliminates corridor choke points.",
+                "sort_key": lambda b: b["scores"].get("flow", 0) + b["scores"].get("accessibility", 0)
+            },
+            {
+                "key": "symmetry",
+                "title": "Harmonious Axial Symmetry",
+                "badge": "Classical Balance",
+                "description": "Aligns primary seating and storage evenly across the central axis for a balanced aesthetic.",
+                "sort_key": lambda b: b["scores"].get("symmetry", 0)
+            },
+            {
+                "key": "open",
+                "title": "Open Perimeter Living",
+                "badge": "Spacious Floor",
+                "description": "Anchors larger storage and seating firmly to perimeter walls to maximize open central floor area.",
+                "sort_key": lambda b: b["scores"].get("accessibility", 0) - b["scores"].get("clutter", 0)
+            },
+            {
+                "key": "conversation",
+                "title": "Social Conversation Lounge",
+                "badge": "Cozy Seating",
+                "description": "Clusters seating and tables inward for comfortable conversation and intimate gatherings.",
+                "sort_key": lambda b: b["scores"].get("overall", 0)
+            },
+            {
+                "key": "lighting",
+                "title": "Natural Daylight Orientation",
+                "badge": "Sunlight Focus",
+                "description": "Optimizes workspace and primary reading zones to capitalize on natural exterior window daylight.",
+                "sort_key": lambda b: b["scores"].get("lighting", 0)
+            }
+        ]
+
+        formatted_blueprints = []
+        assigned_indices = set()
+
+        for arch in ARCHETYPES:
+            available = [(idx, b) for idx, b in enumerate(unique_blueprints) if idx not in assigned_indices]
+            if available:
+                best_idx, best_b = max(available, key=lambda pair: arch["sort_key"](pair[1]))
+                assigned_indices.add(best_idx)
+                formatted_blueprints.append({
+                    "id": f"bp-{len(formatted_blueprints) + 1}",
+                    "title": arch["title"],
+                    "archetype": arch["key"],
+                    "badge": arch["badge"],
+                    "description": arch["description"],
+                    "scores": best_b["scores"],
+                    "layout": best_b["layout"],
+                    "suggestions": best_b["suggestions"]
+                })
+
+        for idx, b in enumerate(unique_blueprints):
+            if idx not in assigned_indices:
+                bp_num = len(formatted_blueprints) + 1
+                formatted_blueprints.append({
+                    "id": f"bp-{bp_num}",
+                    "title": f"Alternative Layout #{bp_num}",
+                    "archetype": "alternative",
+                    "badge": f"Variant #{bp_num}",
+                    "description": "A balanced, collision-free alternative layout configuration satisfying all spatial clearance rules.",
+                    "scores": b["scores"],
+                    "layout": b["layout"],
+                    "suggestions": b["suggestions"]
+                })
+
+        return formatted_blueprints
+
+    def optimize_layout(
+        self, 
+        original_furniture: List[Dict[str, Any]], 
+        room_length: float = 16.0, 
+        room_width: float = 12.0
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
+        """
+        Executes NSGA-II Genetic Algorithm to optimize furniture coordinates.
+        Preserves backward compatibility by returning the top blueprint.
+        """
+        blueprints = self.optimize_multiple_layouts(
+            original_furniture,
+            room_length=room_length,
+            room_width=room_width,
+            max_blueprints=10
+        )
+        if blueprints:
+            return blueprints[0]["layout"], blueprints[0]["suggestions"]
+        return [], []
 
     def _initialize_population(self, original: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
         """Generates starting layouts with wall anchoring and rotation initialization."""

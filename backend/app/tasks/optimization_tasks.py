@@ -1,7 +1,6 @@
 from app.tasks.analysis_tasks import celery_app
 from app.database.session import SessionLocal
-from app.models.optimization import Optimization
-from app.models.room import Room
+from app.models import User, Room, Furniture, Analysis, Optimization, Redesign
 import logging
 import time
 
@@ -47,13 +46,22 @@ def run_layout_optimization_task(self, optimization_id: int) -> int:
         ]
 
         if not original_layout:
-            logger.warning(f"No furniture items found for room {room.id}. Optimization skipped.")
-            opt.original_scores = {"overall": 100, "flow": 100, "symmetry": 100, "clutter": 100, "accessibility": 100, "lighting": 100}
-            opt.optimized_scores = opt.original_scores
-            opt.suggestions = [{"id": "sug-empty", "title": "Empty Space Mapped", "description": "Add furniture items to perform layout constraint optimization audits."}]
-            opt.status = "completed"
-            db.commit()
-            return opt.id
+            logger.info(f"No furniture detected in room {room.id}. Generating recommended starter blueprints for space: {room.space_type}.")
+            if "bedroom" in (room.space_type or "").lower():
+                original_layout = [
+                    {"label": "Bed", "boundingBox": {"x": 25.0, "y": 20.0, "width": 40.0, "height": 35.0}},
+                    {"label": "Nightstand", "boundingBox": {"x": 12.0, "y": 22.0, "width": 10.0, "height": 12.0}},
+                    {"label": "Sideboard", "boundingBox": {"x": 75.0, "y": 50.0, "width": 20.0, "height": 15.0}},
+                    {"label": "Door", "boundingBox": {"x": 5.0, "y": 85.0, "width": 12.0, "height": 10.0}}
+                ]
+            else:
+                original_layout = [
+                    {"label": "Sofa", "boundingBox": {"x": 20.0, "y": 30.0, "width": 35.0, "height": 22.0}},
+                    {"label": "Coffee Table", "boundingBox": {"x": 30.0, "y": 56.0, "width": 18.0, "height": 14.0}},
+                    {"label": "Armchair", "boundingBox": {"x": 65.0, "y": 40.0, "width": 15.0, "height": 16.0}},
+                    {"label": "Sideboard", "boundingBox": {"x": 15.0, "y": 80.0, "width": 25.0, "height": 12.0}},
+                    {"label": "Door", "boundingBox": {"x": 80.0, "y": 85.0, "width": 12.0, "height": 10.0}}
+                ]
 
         # 3. Calculate baseline spatial ratings
         from app.ai.scoring.scorer import ExplainableScoringEngine
@@ -61,27 +69,31 @@ def run_layout_optimization_task(self, optimization_id: int) -> int:
         baseline_res = scorer.calculate_room_scores(original_layout)
         original_scores = baseline_res["scores"]
 
-        # 4. Trigger Genetic Optimization Solver
+        # 4. Trigger Genetic Optimization Solver for multi-blueprint generation
         from app.ai.optimization.solver import LayoutConstraintSolver
-        solver = LayoutConstraintSolver(population_size=30, generations=40)
-        optimized_layout, suggestions = solver.optimize_layout(
+        solver = LayoutConstraintSolver(population_size=35, generations=45)
+        blueprints = solver.optimize_multiple_layouts(
             original_layout,
             room_length=room.length or 16.0,
-            room_width=room.width or 12.0
+            room_width=room.width or 12.0,
+            max_blueprints=15
         )
 
-        # 5. Compute optimized spatial ratings
-        optimized_res = scorer.calculate_room_scores(optimized_layout)
-        optimized_scores = optimized_res["scores"]
+        top_blueprint = blueprints[0] if blueprints else {
+            "layout": original_layout,
+            "scores": original_scores,
+            "suggestions": []
+        }
 
-        # 6. Save results to Optimization DB entity
+        # 5. Save results and candidate blueprints to Optimization DB entity
         opt.original_scores = original_scores
-        opt.optimized_scores = optimized_scores
-        opt.suggestions = suggestions
+        opt.optimized_scores = top_blueprint.get("scores", original_scores)
+        opt.suggestions = top_blueprint.get("suggestions", [])
+        opt.blueprints = blueprints
         opt.status = "completed"
         db.commit()
         
-        logger.info(f"Layout optimization task completed successfully for ID: {optimization_id}")
+        logger.info(f"Layout optimization task completed with {len(blueprints)} blueprints for ID: {optimization_id}")
         return opt.id
 
     except Exception as exc:

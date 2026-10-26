@@ -11,6 +11,8 @@ export interface RedesignPayload {
   room_id: number;
   selected_style: string;
   prompt?: string;
+  blueprint_id?: string;
+  blueprint_layout?: any[];
 }
 
 export const redesignService = {
@@ -23,12 +25,16 @@ export const redesignService = {
     roomId: string,
     style: string,
     prompt: string,
-    _originalImageUrl: string
+    _originalImageUrl: string,
+    blueprintId?: string,
+    blueprintLayout?: any[]
   ): Promise<RedesignResult> {
     const response = await apiClient.post<BackendRedesign>('/redesign', {
       room_id: parseInt(roomId, 10),
       selected_style: style,
       prompt: prompt || `Redesign space using ${style} style`,
+      blueprint_id: blueprintId,
+      blueprint_layout: blueprintLayout,
     } satisfies RedesignPayload);
 
     return mapBackendRedesign(response.data);

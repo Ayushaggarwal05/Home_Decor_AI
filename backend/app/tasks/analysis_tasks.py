@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 celery_app = Celery(
     "aura_tasks",
     broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL
+    backend=settings.REDIS_URL,
+    include=[
+        "app.tasks.analysis_tasks",
+        "app.tasks.optimization_tasks",
+        "app.tasks.redesign_tasks",
+    ]
 )
 
 # Standard configuration settings
@@ -32,6 +37,11 @@ celery_app.conf.update(
     enable_utc=True,
     task_track_started=True,
     task_time_limit=300, # 5 minutes hard limit
+    include=[
+        "app.tasks.analysis_tasks",
+        "app.tasks.optimization_tasks",
+        "app.tasks.redesign_tasks",
+    ],
     task_routes={
         "app.tasks.analysis_tasks.run_spatial_analysis_task": {"queue": "default"},
         "app.tasks.optimization_tasks.run_layout_optimization_task": {"queue": "default"},

@@ -16,6 +16,9 @@ class Optimization(Base):
     # List of layout suggestions: Array<{id: str, title: str, description: str}>
     suggestions = Column(JSON, nullable=True)
     
+    # Ranked candidate floorplan blueprints: Array<RoomBlueprint>
+    blueprints = Column(JSON, nullable=True)
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     room_id = Column(Integer, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)

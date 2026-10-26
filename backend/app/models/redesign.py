@@ -18,6 +18,10 @@ class Redesign(Base):
     # Text list of styling advice suggestions
     suggestions = Column(JSON, nullable=True)
     
+    # Blueprint metadata selected by user
+    blueprint_id = Column(String, nullable=True)
+    blueprint_layout = Column(JSON, nullable=True)
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     room_id = Column(Integer, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False)

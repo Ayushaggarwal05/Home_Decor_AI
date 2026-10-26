@@ -149,6 +149,7 @@ export function mapBackendOptimization(
     originalScores: toScore(raw.original_scores),
     optimizedScores: toScore(raw.optimized_scores),
     suggestions: raw.suggestions,
+    blueprints: raw.blueprints,
     createdAt: raw.created_at,
   };
 }

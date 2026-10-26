@@ -145,6 +145,21 @@ export interface OptimizationSuggestion {
   description: string;
 }
 
+export interface RoomBlueprint {
+  id: string;
+  title: string;
+  archetype: 'flow' | 'symmetry' | 'open' | 'conversation' | 'lighting' | 'alternative';
+  badge: string;
+  description: string;
+  scores: OptimizationScore;
+  layout: {
+    label: string;
+    rotation?: number;
+    boundingBox: BoundingBox;
+  }[];
+  suggestions: OptimizationSuggestion[];
+}
+
 export interface OptimizationResult {
   id: string;
   roomId: string;
@@ -152,6 +167,7 @@ export interface OptimizationResult {
   originalScores?: OptimizationScore;
   optimizedScores?: OptimizationScore;
   suggestions?: OptimizationSuggestion[];
+  blueprints?: RoomBlueprint[];
   createdAt: string;
 }
 
@@ -318,6 +334,7 @@ export interface BackendOptimization {
   original_scores?: Record<string, number>;
   optimized_scores?: Record<string, number>;
   suggestions?: Array<{ id: string; title: string; description: string }>;
+  blueprints?: any[];
   created_at: string;
 }
 

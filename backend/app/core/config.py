@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = "123456789012345"
     CLOUDINARY_API_SECRET: str = "abcdefghijklmnopqrstuvwxyz12"
 
+    # Google Gemini & Imagen API Generative Redesign configurations
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    IMAGEN_MODEL: str = "imagen-3.0-generate-002"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

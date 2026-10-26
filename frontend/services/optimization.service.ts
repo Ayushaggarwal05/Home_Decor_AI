@@ -29,4 +29,15 @@ export const optimizationService = {
     );
     return mapBackendOptimization(response.data);
   },
+
+  /**
+   * GET /api/optimize/room/{room_id}
+   * Fetch latest optimization with candidate blueprints for a room.
+   */
+  async getRoomBlueprints(roomId: string): Promise<OptimizationResult> {
+    const response = await apiClient.get<BackendOptimization>(
+      `/optimize/room/${roomId}`
+    );
+    return mapBackendOptimization(response.data);
+  },
 };

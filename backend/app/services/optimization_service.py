@@ -24,3 +24,7 @@ class OptimizationService:
     def get_optimization_by_id(self, db: Session, opt_id: int) -> Optional[Optimization]:
         """Fetch optimization state."""
         return db.query(Optimization).filter(Optimization.id == opt_id).first()
+
+    def get_latest_optimization_by_room(self, db: Session, room_id: int) -> Optional[Optimization]:
+        """Fetch latest optimization record with blueprints for a given room."""
+        return db.query(Optimization).filter(Optimization.room_id == room_id).order_by(Optimization.created_at.desc()).first()

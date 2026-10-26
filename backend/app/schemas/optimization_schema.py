@@ -17,6 +17,7 @@ class OptimizationResponse(BaseModel):
     original_scores: Optional[Dict[str, Any]] = None
     optimized_scores: Optional[Dict[str, Any]] = None
     suggestions: Optional[List[Dict[str, Any]]] = None
+    blueprints: Optional[List[Dict[str, Any]]] = None
     created_at: datetime
 
     class Config:

@@ -25,12 +25,14 @@ def run_generative_redesign_task(self, redesign_id: int) -> int:
         # Simulate heavy diffusion GPU delay
         time.sleep(3.0)
 
-        # Trigger model interface
+        # Trigger model interface with blueprint coordinates and style
         generator = ImageGenerationInterface()
         redesigned_url, suggestions = generator.generate_redesigned_room(
             image_url=redesign.original_image_url,
             prompt=redesign.prompt,
-            style=redesign.selected_style
+            style=redesign.selected_style,
+            blueprint_id=redesign.blueprint_id,
+            blueprint_layout=redesign.blueprint_layout
         )
 
         # Update database entity

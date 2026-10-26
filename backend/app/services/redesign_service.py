@@ -18,6 +18,8 @@ class RedesignService:
             status="pending",
             prompt=req.prompt,
             selected_style=req.selected_style,
+            blueprint_id=req.blueprint_id,
+            blueprint_layout=req.blueprint_layout,
             original_image_url=original_image_url,
             room_id=req.room_id
         )
