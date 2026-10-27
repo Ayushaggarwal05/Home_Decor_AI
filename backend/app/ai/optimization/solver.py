@@ -4,6 +4,7 @@ import math
 import logging
 from typing import List, Dict, Any, Tuple, Optional
 from app.ai.scoring.scorer import ExplainableScoringEngine
+from app.utils.geometry_utils import compute_bounding_box_intersection_ratio
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,9 @@ class LayoutConstraintSolver:
             logger.info("Optimization aborted: No furniture items specified.")
             return []
 
+        # 0. Normalize perspective-distorted footprints to standard top-down proportions
+        original_furniture = self._normalize_floorplan_dimensions(original_furniture)
+
         # 1. Initialize parent population
         parents_layout = self._initialize_population(original_furniture)
         parents_wrapper = [{"layout": layout} for layout in parents_layout]
@@ -152,17 +156,22 @@ class LayoutConstraintSolver:
         for front in final_fronts:
             for idx in front:
                 layout = parents_wrapper[idx]["layout"]
+                self._resolve_collisions(layout)
                 res = self._evaluate_individual(layout)
+                collision = self._compute_layout_collision(layout)
                 candidates.append({
                     "layout": layout,
                     "scores": res["scores"],
-                    "penalties": res.get("penalties", 0.0)
+                    "collision": collision
                 })
 
-        # Filter out invalid layouts (excessive collision penalty)
-        valid_candidates = [c for c in candidates if c["penalties"] < 0.15]
+        # Strict collision filter: prioritize collision-free layouts with healthy accessibility (>= 40)
+        valid_candidates = [
+            c for c in candidates 
+            if c["collision"] < 0.04 and c["scores"].get("accessibility", 0) >= 40
+        ]
         if not valid_candidates:
-            valid_candidates = sorted(candidates, key=lambda c: c["penalties"])
+            valid_candidates = sorted(candidates, key=lambda c: (c["collision"], -c["scores"].get("accessibility", 0)))
 
         # Deduplication & diversity check (Euclidean distance threshold between centroids)
         unique_blueprints = []
@@ -275,6 +284,8 @@ class LayoutConstraintSolver:
 
         for arch in ARCHETYPES:
             available = [(idx, b) for idx, b in enumerate(unique_blueprints) if idx not in assigned_indices]
+            if not available and unique_blueprints:
+                available = [(idx, b) for idx, b in enumerate(unique_blueprints)]
             if available:
                 best_idx, best_b = max(available, key=lambda pair: arch["sort_key"](pair[1]))
                 assigned_indices.add(best_idx)
@@ -344,6 +355,12 @@ class LayoutConstraintSolver:
             individual = []
             for item in original:
                 mutated_item = copy.deepcopy(item)
+                label_lower = mutated_item.get("label", "").lower()
+                # Non-movable structural elements (Door, Window) stay strictly anchored to their physical positions
+                if label_lower in ["door", "window"]:
+                    individual.append(mutated_item)
+                    continue
+
                 if "original_width" not in mutated_item:
                     mutated_item["original_width"] = mutated_item["boundingBox"]["width"]
                     mutated_item["original_height"] = mutated_item["boundingBox"]["height"]
@@ -362,13 +379,13 @@ class LayoutConstraintSolver:
                 mutated_item["boundingBox"]["y"] = random.uniform(0.0, 100.0 - h)
                 
                 # Snap to wall if structural/anchored item
-                label_lower = mutated_item.get("label", "").lower()
                 if label_lower in ["bed", "bookshelf", "sideboard", "desk"]:
                     self._snap_to_wall(mutated_item, w, h)
                     
                 self._update_item_bounding_box(mutated_item)
                 individual.append(mutated_item)
                 
+            self._resolve_collisions(individual)
             population.append(individual)
             
         return population
@@ -569,6 +586,9 @@ class LayoutConstraintSolver:
             
             # Mutation
             self._apply_mutation(child_layout, generation)
+            
+            # Resolve physical collisions between furniture
+            self._resolve_collisions(child_layout)
             
             children_wrapper.append({
                 "layout": child_layout
@@ -820,6 +840,112 @@ class LayoutConstraintSolver:
             box["y"] = 0.0
         else:
             box["y"] = 100.0 - h
+
+    def _compute_layout_collision(self, layout: List[Dict[str, Any]]) -> float:
+        """Calculates total physical collision / overlap ratio between solid furniture items."""
+        total_collision = 0.0
+        movable = [it for it in layout if it.get("label", "").lower() not in ["window", "door"]]
+        for i in range(len(movable)):
+            boxA = movable[i]["boundingBox"]
+            for j in range(i + 1, len(movable)):
+                boxB = movable[j]["boundingBox"]
+                iou = compute_bounding_box_intersection_ratio(boxA, boxB)
+                if iou > 0.03:
+                    total_collision += iou
+        return total_collision
+
+    def _resolve_collisions(self, individual: List[Dict[str, Any]]) -> None:
+        """
+        Iteratively pushes overlapping movable furniture items apart along their minimum overlap axis.
+        Guarantees that items do not intersect or sit on top of each other.
+        """
+        movable = [it for it in individual if it.get("label", "").lower() not in ["window", "door"]]
+        for _ in range(15):
+            any_overlap = False
+            for i in range(len(movable)):
+                boxA = movable[i]["boundingBox"]
+                for j in range(i + 1, len(movable)):
+                    boxB = movable[j]["boundingBox"]
+                    iou = compute_bounding_box_intersection_ratio(boxA, boxB)
+                    if iou > 0.03:
+                        any_overlap = True
+                        xA = max(boxA["x"], boxB["x"])
+                        xB = min(boxA["x"] + boxA["width"], boxB["x"] + boxB["width"])
+                        yA = max(boxA["y"], boxB["y"])
+                        yB = min(boxA["y"] + boxA["height"], boxB["y"] + boxB["height"])
+                        overlap_x = max(0.0, xB - xA)
+                        overlap_y = max(0.0, yB - yA)
+                        
+                        if overlap_x < overlap_y:
+                            shift = (overlap_x / 2.0) + 1.0
+                            if boxA["x"] < boxB["x"]:
+                                boxA["x"] = max(0.0, boxA["x"] - shift)
+                                boxB["x"] = min(100.0 - boxB["width"], boxB["x"] + shift)
+                            else:
+                                boxA["x"] = min(100.0 - boxA["width"], boxA["x"] + shift)
+                                boxB["x"] = max(0.0, boxB["x"] - shift)
+                        else:
+                            shift = (overlap_y / 2.0) + 1.0
+                            if boxA["y"] < boxB["y"]:
+                                boxA["y"] = max(0.0, boxA["y"] - shift)
+                                boxB["y"] = min(100.0 - boxB["height"], boxB["y"] + shift)
+                            else:
+                                boxA["y"] = min(100.0 - boxA["width"], boxA["y"] + shift)
+                                boxB["y"] = max(0.0, boxB["y"] - shift)
+            if not any_overlap:
+                break
+
+    def _normalize_floorplan_dimensions(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Normalizes perspective-distorted 2D camera bounding boxes into realistic top-down floorplan dimensions.
+        For instance, a foreground bed taking 60% of camera width is scaled to standard room proportion (~36%).
+        """
+        normalized = []
+        for it in items:
+            item = copy.deepcopy(it)
+            lbl = item.get("label", "").lower()
+            box = item.get("boundingBox", {})
+            w = float(box.get("width", 20.0))
+            h = float(box.get("height", 20.0))
+            x = float(box.get("x", 0.0))
+            y = float(box.get("y", 0.0))
+            
+            if lbl == "bed":
+                w = min(w, 36.0)
+                h = min(h, 42.0)
+            elif lbl == "desk":
+                w = min(w, 28.0)
+                h = min(h, 18.0)
+            elif lbl == "wardrobe":
+                w = min(w, 20.0)
+                h = min(h, 32.0)
+            elif lbl == "window":
+                h = min(h, 8.0)
+            elif lbl in ["armchair", "chair"]:
+                w = min(w, 15.0)
+                h = min(h, 15.0)
+            elif lbl == "nightstand":
+                w = min(w, 10.0)
+                h = min(h, 10.0)
+            elif lbl == "bookshelf":
+                w = min(w, 9.0)
+                h = min(h, 35.0)
+            elif lbl in ["sofa", "couch"]:
+                w = min(w, 38.0)
+                h = min(h, 22.0)
+            elif lbl == "coffee table":
+                w = min(w, 18.0)
+                h = min(h, 14.0)
+                
+            box["width"] = round(w, 2)
+            box["height"] = round(h, 2)
+            box["x"] = round(max(0.0, min(100.0 - w, x)), 2)
+            box["y"] = round(max(0.0, min(100.0 - h, y)), 2)
+            item["boundingBox"] = box
+            item["original_width"] = w
+            item["original_height"] = h
+            normalized.append(item)
+        return normalized
 
     def _generate_explainable_changes(
         self, 

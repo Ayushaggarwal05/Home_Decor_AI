@@ -89,7 +89,8 @@ class RedesignImageGenerator:
         logger.info(f"Triggering Generative Redesign for style '{style}' with blueprint '{blueprint_id}'")
 
         # 1. Synthesize blueprint layout coordinates into descriptive spatial prompt
-        blueprint_directives = []
+        structural_directives = []
+        furniture_directives = []
         if blueprint_layout:
             for item in blueprint_layout:
                 lbl = item.get("label", "Furniture")
@@ -98,19 +99,28 @@ class RedesignImageGenerator:
                 y = box.get("y", 50)
                 pos_h = "left side" if x < 35 else ("right side" if x > 65 else "center")
                 pos_v = "foreground" if y > 60 else ("background" if y < 35 else "middle zone")
-                blueprint_directives.append(f"{lbl} positioned at {pos_h} ({pos_v})")
+                lbl_lower = lbl.lower()
+                if lbl_lower in ["window", "door"]:
+                    structural_directives.append(f"{lbl} located at {pos_h} ({pos_v})")
+                else:
+                    furniture_directives.append(f"{lbl} positioned at {pos_h} ({pos_v})")
 
-        spatial_summary = (
-            "; ".join(blueprint_directives) 
-            if blueprint_directives 
+        structural_summary = (
+            "Architectural envelope anchors: " + "; ".join(structural_directives)
+            if structural_directives
+            else "Preserve original room wall boundaries, window openings, and door entryways"
+        )
+        furniture_summary = (
+            "; ".join(furniture_directives)
+            if furniture_directives
             else "Optimized open circulation walkways with unobstructed door clearance"
         )
 
         full_prompt = (
             f"Professional interior design architectural photograph, photorealistic 8K render. "
-            f"Transform room to '{style}' style. "
-            f"Architectural layout directives: {spatial_summary}. "
-            f"Retain the original room's wall boundaries, floor level, window openings, and ceiling angles. "
+            f"Transform room to '{style}' style while preserving the original room's exact architectural envelope, wall perimeters, and window/door openings. "
+            f"{structural_summary}. "
+            f"Furniture arrangement directives: {furniture_summary}. "
             f"Materials: natural curated textures, authentic lighting, balanced circulation paths. "
         )
         if prompt:

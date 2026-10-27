@@ -216,7 +216,13 @@ class ExplainableScoringEngine:
         # 2. Check for physical overlaps/collisions (IoU)
         overlaps_detected = 0
         for i in range(len(furniture)):
+            lbl_i = furniture[i].get("label", "").lower()
+            if lbl_i in ["window", "door"]:
+                continue
             for j in range(i + 1, len(furniture)):
+                lbl_j = furniture[j].get("label", "").lower()
+                if lbl_j in ["window", "door"]:
+                    continue
                 boxA = furniture[i]["boundingBox"]
                 boxB = furniture[j]["boundingBox"]
                 iou = compute_bounding_box_intersection_ratio(boxA, boxB)
