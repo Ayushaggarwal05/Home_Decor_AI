@@ -40,100 +40,139 @@
 ```
 frontend/
 ├── app/                              # 📱 Next.js App Router pages
-│   ├── (marketing)/                  # Route group — public marketing pages
-│   │   ├── page.tsx                  # 🏠 Landing page
+│   ├── (marketing)/                  # Public marketing route group
+│   │   ├── page.tsx                  # 🏠 Landing page (hero, dual mode, metrics, pricing)
 │   │   ├── about/                    # About page
 │   │   ├── features/                 # Features showcase
 │   │   └── pricing/                  # Pricing tiers
-│   ├── dashboard/                    # 📊 User dashboard
-│   │   └── page.tsx                  # Room scan history + analytics summary
-│   ├── upload/                       # 📤 Room upload flow
-│   │   └── page.tsx                  # Drag-and-drop upload + metadata form
-│   ├── research/                     # 🔬 Spatial analysis results
-│   │   └── page.tsx                  # Scores, occupancy grid, heatmaps, overlays
-│   ├── redesign/                     # 🎨 AI redesign studio
-│   │   └── page.tsx                  # Prompt input, before/after slider, suggestions
-│   ├── compare/                      # ⚖️ Room comparison
+│   ├── (auth)/                       # Authentication route group
+│   │   ├── layout.tsx                # Isolated auth layout
+│   │   ├── login/                    # Login page
+│   │   ├── signup/                   # Signup page
+│   │   ├── forgot-password/          # Forgot password page
+│   │   └── reset-password/           # Password reset page
+│   ├── studio/                       # 🏛️ Primary Studio Workspace
+│   │   └── page.tsx                  # Active spaces grid, quick actions, studio stats
+│   ├── upload/                       # 📤 Room Upload & Presets
+│   │   └── page.tsx                  # Image dropzone, scale & space type presets
+│   ├── research/                     # 🔬 Spatial Analysis Lab
+│   │   └── page.tsx                  # Scores, occupancy grid, relationship graphs, overlays
+│   ├── redesign/                     # 🎨 AI Redesign Studio
+│   │   └── page.tsx                  # 2D blueprint selection, Gemini/Imagen 3 renders, slider
+│   ├── compare/                      # ⚖️ Room Comparison
 │   │   └── page.tsx                  # Side-by-side metric delta comparison
-│   ├── settings/                     # ⚙️ User preferences
-│   │   └── page.tsx                  # Unit system, account settings
-│   ├── api/                          # Next.js API routes (if any)
-│   ├── globals.css                   # Global base styles and CSS variables
-│   ├── layout.tsx                    # Root layout (fonts, providers, navbar)
+│   ├── settings/                     # ⚙️ User Preferences
+│   │   └── page.tsx                  # Unit system, user settings
+│   ├── api/health/                   # Healthcheck endpoint
+│   ├── globals.css                   # Global styles & theme CSS variables
+│   ├── layout.tsx                    # Root layout with QueryProvider and Navbars
 │   └── loading.tsx                   # Global loading skeleton
 │
 ├── components/                       # 🧩 Reusable React Components
+│   ├── blueprint/                    # 📐 Interactive 2D Blueprint Components
+│   │   ├── BlueprintFloorplan.tsx    # SVG CAD-style floorplan blueprint renderer
+│   │   ├── BlueprintModal.tsx        # High-res modal viewer for blueprint layout
+│   │   └── BlueprintSelector.tsx     # Candidate blueprint card selector
+│   │
+│   ├── export/                       # 📄 Multi-Format Export Components
+│   │   ├── ExportReportModal.tsx     # Export trigger modal (PDF, JSON, Summary)
+│   │   └── PrintableReportTemplate.tsx # Printable A4-formatted PDF audit template
+│   │
 │   ├── layout/                       # Structural layout components
-│   │   ├── Navbar.tsx                # Top navigation bar with auth state
+│   │   ├── Navbar.tsx                # Workspace top navbar with golden accents
 │   │   ├── Sidebar.tsx               # Collapsible sidebar navigation
-│   │   ├── DashboardShell.tsx        # Dashboard page wrapper with sidebar
-│   │   └── PageContainer.tsx         # Consistent page width/padding container
+│   │   ├── FloatingDock.tsx          # Floating quick-navigation dock
+│   │   ├── StudioFooter.tsx          # Dark slate & golden studio footer
+│   │   ├── DashboardShell.tsx        # Workspace layout shell
+│   │   └── PageContainer.tsx         # Consistent page width container
+│   │
+│   ├── marketing/                    # Landing page sections
+│   │   ├── MarketingNavbar.tsx       # Full-width marketing navigation bar
+│   │   ├── HeroSection.tsx           # Asymmetric studio hero with stacked typography
+│   │   ├── FeatureDualMode.tsx       # Research Lab vs Design Studio split preview
+│   │   ├── InteractiveDemo.tsx       # Live interactive demo card
+│   │   ├── MetricsShowcase.tsx       # Spatial intelligence score preview
+│   │   ├── WorkflowSteps.tsx         # 3-step scan-to-render walkthrough
+│   │   ├── PricingSection.tsx        # Pricing tiers table
+│   │   └── MarketingFooter.tsx       # Marketing footer
 │   │
 │   ├── upload/                       # Upload flow components
 │   │   ├── UploadDropzone.tsx        # Drag-and-drop file upload zone
-│   │   ├── UploadProgress.tsx        # Upload progress indicator and status
+│   │   ├── CameraGuidanceBanner.tsx  # Best practices notice for photos
+│   │   ├── CameraGuidanceModal.tsx   # Detailed perspective & lighting guide
+│   │   ├── RoomScaleSelector.tsx     # Room size presets (Compact, Standard, Expansive)
+│   │   ├── SpaceTypeSelector.tsx     # Space type (Living Room, Bedroom, Studio, Office)
+│   │   ├── StylePresetSelector.tsx   # Aesthetic preset cards
+│   │   ├── UploadProgress.tsx        # Upload progress indicator
 │   │   ├── ImagePreview.tsx          # Uploaded image preview card
-│   │   └── PromptInput.tsx           # Style prompt text input field
+│   │   └── PromptInput.tsx           # Style prompt text input
 │   │
-│   ├── room/                         # Room display components
-│   │   ├── RoomCard.tsx              # Room scan thumbnail card with metadata
-│   │   └── RoomDetails.tsx           # Detailed room info panel
+│   ├── room/                         # Room scan cards & previews
+│   │   ├── RoomCard.tsx              # Room scan card with quick stats
+│   │   └── RoomDetails.tsx           # Detailed room information panel
 │   │
-│   ├── scoring/                      # Metric and scoring components
-│   │   ├── ScoreCard.tsx             # Individual score display card (0-100)
-│   │   ├── MetricGauge.tsx           # Circular gauge for score visualization
-│   │   ├── ClutterMeter.tsx          # Clutter level indicator bar
-│   │   └── OptimizationBreakdown.tsx # Optimization suggestions list panel
+│   ├── scoring/                      # Spatial score displays
+│   │   ├── ScoreCard.tsx             # Metric card (0-100)
+│   │   ├── MetricGauge.tsx           # Circular SVG gauge
+│   │   ├── ClutterMeter.tsx          # Clutter density horizontal bar
+│   │   └── OptimizationBreakdown.tsx # Actionable layout optimization items
 │   │
-│   ├── visualization/                # Spatial data visualization components
-│   │   ├── OccupancyGrid.tsx         # 2D occupancy grid matrix renderer
-│   │   ├── HeatmapViewer.tsx         # Color-coded heatmap overlay
-│   │   ├── DetectionOverlay.tsx      # Bounding box overlay on room image
-│   │   ├── SymmetryViewer.tsx        # Symmetry axis visualization
-│   │   └── SpaceUsageChart.tsx       # Space utilization bar/pie chart
+│   ├── visualization/                # Spatial intelligence visualizers
+│   │   ├── OccupancyGrid.tsx         # 2D occupancy matrix (walkable / buffer / occupied)
+│   │   ├── HeatmapViewer.tsx         # Color-coded density heatmap
+│   │   ├── DetectionOverlay.tsx      # Object bounding box overlay
+│   │   ├── RelationshipGraph.tsx     # Spatial Relationship Graph (SRG) visualizer
+│   │   ├── SpacingConnectors.tsx     # Clearance vector lines
+│   │   ├── SymmetryViewer.tsx        # Room centerline & visual mass balance
+│   │   └── SpaceUsageChart.tsx       # Floor area distribution chart
 │   │
 │   ├── comparison/                   # Comparison components
-│   │   ├── BeforeAfterSlider.tsx     # Interactive drag slider (before/after)
-│   │   └── ComparisonGrid.tsx        # Two-panel side-by-side grid comparison
+│   │   ├── BeforeAfterSlider.tsx     # Interactive comparison slider
+│   │   └── ComparisonGrid.tsx        # Multi-metric delta comparison grid
 │   │
-│   ├── dashboard/                    # Dashboard-specific components
+│   ├── dashboard/                    # Studio dashboard widgets
 │   │   ├── RecentScans.tsx           # Latest room scans feed
-│   │   └── AnalyticsSummary.tsx      # Quick stats (total rooms, avg score, etc.)
+│   │   └── AnalyticsSummary.tsx      # Aggregate spatial score summary
 │   │
-│   ├── charts/                       # Data chart components
-│   │   └── RadarMetricChart.tsx      # Pentagon radar chart for all 5 metrics
+│   ├── charts/                       # Metric charts
+│   │   └── RadarMetricChart.tsx      # Pentagon radar chart of 5 spatial metrics
 │   │
-│   ├── animations/                   # Animation wrapper components
-│   │   └── FadeIn.tsx                # Framer Motion fade-in entrance wrapper
+│   ├── auth/                         # Authentication modals & helpers
+│   │   ├── ForgotPasswordModal.tsx   # Password recovery dialog
+│   │   ├── PasswordStrengthBar.tsx   # Real-time password strength meter
+│   │   └── SocialAuthButtons.tsx     # Social login buttons
 │   │
-│   └── ui/                           # Primitive UI components
-│       ├── Button.tsx                # Styled button with variants
-│       ├── Modal.tsx                 # Overlay modal dialog
-│       └── Tabs.tsx                  # Tabbed content switcher
+│   ├── animations/                   # Animation wrappers
+│   │   └── FadeIn.tsx                # Framer Motion entrance wrapper
+│   │
+│   └── ui/                           # Base UI primitives
+│       ├── Button.tsx                # Styled button variants
+│       ├── Modal.tsx                 # Accessible modal dialog
+│       ├── Tabs.tsx                  # Segmented tabs switcher
+│       └── Toast.tsx                 # Toast notification feedback
 │
 ├── services/                         # 🌐 Axios API Service Layer
-│   ├── api.ts                        # Base Axios instance + auth interceptors
-│   ├── room.service.ts               # Room CRUD, upload, analysis polling
-│   ├── optimization.service.ts       # Optimization job creation + status polling
-│   ├── redesign.service.ts           # Redesign job creation + status polling
-│   └── scoring.service.ts            # Score recalculation API calls
+│   ├── api.ts                        # Base Axios instance + JWT interceptors
+│   ├── room.service.ts               # Room scans, image upload, analysis polling
+│   ├── optimization.service.ts       # NSGA-II optimization job trigger & polling
+│   ├── redesign.service.ts           # Gemini/Imagen 3 redesign requests & history
+│   └── scoring.service.ts            # Score recalculation service
 │
-├── store/                            # 🗃️ Zustand State Management
-│   └── roomStore.ts                  # Global room state (active room, analysis, scores)
+├── store/                            # 🗃️ Zustand Global State
+│   └── roomStore.ts                  # Active room, analyses, scores, blueprints, layout state
 │
-├── types/                            # 🔷 TypeScript Type Definitions
-│   └── index.ts                      # Room, Analysis, Score, Furniture, Redesign types
+├── types/                            # 🔷 TypeScript Definitions
+│   └── index.ts                      # Data models and API contract types
 │
 ├── providers/                        # ⚡ React Context Providers
-│   └── QueryProvider.tsx             # TanStack Query client provider wrapper
+│   └── QueryProvider.tsx             # TanStack Query client wrapper
 │
 ├── lib/                              # 🛠️ Utility Functions
 │   └── utils.ts                      # cn() Tailwind class merging utility
 │
 ├── public/                           # Static assets
-├── middleware.ts                     # Next.js middleware (auth routing guards)
+├── middleware.ts                     # Auth route protection middleware
 ├── next.config.ts                    # Next.js configuration
-├── tailwind.config.*                 # Tailwind CSS configuration
 ├── tsconfig.json                     # TypeScript configuration
 └── package.json                      # Dependencies and scripts
 ```
@@ -143,53 +182,82 @@ frontend/
 ## 🗺️ Pages & Routes
 
 | Route | Description | Auth Required |
-|-------|-------------|--------------|
-| `/` | Landing page with hero, features, and CTA | ❌ |
-| `/about` | About the platform and team | ❌ |
-| `/features` | Feature showcase and AI capabilities | ❌ |
-| `/pricing` | Subscription tier comparison | ❌ |
-| `/dashboard` | User's room scan history and quick stats | ✅ |
-| `/upload` | Upload a new room image and configure scan | ✅ |
-| `/research` | View spatial analysis results for a room | ✅ |
-| `/redesign` | AI generative redesign studio | ✅ |
-| `/compare` | Compare spatial metrics between two rooms | ✅ |
-| `/settings` | Account and unit preferences | ✅ |
+| --- | --- | --- |
+| `/` | Landing page featuring dual-mode preview, interactive demo, and pricing | ❌ |
+| `/about` | About the Matter AI spatial intelligence platform | ❌ |
+| `/features` | Detailed breakdown of deterministic spatial mapping vs generative AI | ❌ |
+| `/pricing` | Subscription tiers and plan breakdown | ❌ |
+| `/login` / `/signup` | User authentication and session provisioning | ❌ |
+| `/studio` | Creative Asymmetric Studio workspace, active spaces grid, and quick actions | ✅ |
+| `/upload` | Room image drag-and-drop with room scale and space type selectors | ✅ |
+| `/research` | Spatial analysis lab (scores, occupancy grid, heatmaps, relationship graph) | ✅ |
+| `/redesign` | Multimodal AI redesign studio with 2D blueprint selection & comparison slider | ✅ |
+| `/compare` | Side-by-side metric delta comparison across multiple scans | ✅ |
+| `/settings` | Account settings, measurement unit preferences (Metric / Imperial) | ✅ |
 
 ---
 
 ## 🧩 Component Library
 
-### Layout
+### 2D Floorplan Blueprints
 | Component | Description |
-|-----------|-------------|
-| `Navbar` | Top navigation with user menu, notification badges |
-| `Sidebar` | Collapsible icon sidebar with active route highlighting |
-| `DashboardShell` | Full-screen layout shell combining sidebar + content area |
-| `PageContainer` | Max-width constrained container with consistent padding |
+| --- | --- |
+| `BlueprintFloorplan` | Architectural CAD-style SVG layout blueprint with dimensional grids and furniture footprints |
+| `BlueprintModal` | High-resolution modal viewer with dimension annotations and export options |
+| `BlueprintSelector` | Visual selector enabling users to choose between candidate optimized layout blueprints |
 
-### Visualization
+### Export & Audit
 | Component | Description |
-|-----------|-------------|
-| `OccupancyGrid` | Renders a color-coded 10×10 grid (empty / buffer / occupied) |
-| `HeatmapViewer` | Gradient-shaded heatmap overlay on room image |
-| `DetectionOverlay` | Draws YOLOv8 bounding boxes over the room image |
-| `SymmetryViewer` | Displays the room centerline and symmetry weight indicators |
-| `SpaceUsageChart` | Bar chart of walkable / buffer / occupied cell percentages |
+| --- | --- |
+| `ExportReportModal` | Modal offering Printable PDF Audit Reports, GeoJSON/Spatial datasets, and clipboard summary |
+| `PrintableReportTemplate` | A4-formatted, print-ready document template containing spatial scores, recommendations, and blueprints |
 
-### Scoring
+### Layout & Navigation
 | Component | Description |
-|-----------|-------------|
-| `ScoreCard` | Single metric card with score, label, and trend indicator |
-| `MetricGauge` | SVG circular gauge for a single 0–100 score |
-| `ClutterMeter` | Horizontal progress bar with Low / Medium / High color states |
-| `OptimizationBreakdown` | Scrollable list of GA solver suggestions with action items |
-| `RadarMetricChart` | Recharts pentagon radar showing all 5 metrics at once |
+| --- | --- |
+| `Navbar` | Studio top navbar with active room indicator and golden theme accents |
+| `MarketingNavbar` | Full-width public navigation bar with CTA buttons |
+| `Sidebar` | Collapsible sidebar with active page indicators |
+| `FloatingDock` | Quick-navigation pill dock for seamless switching between Research Lab and Design Studio |
+| `StudioFooter` | Dark slate & golden themed footer with status diagnostics |
+| `DashboardShell` | Workspace layout shell combining sidebar and content container |
+| `PageContainer` | Consistent page width container |
+
+### Visualization & Spatial Reasoning
+| Component | Description |
+| --- | --- |
+| `OccupancyGrid` | 10×10 coordinate matrix visualizing walkable, buffer, and occupied room zones |
+| `HeatmapViewer` | Color-graded density heatmap overlay directly aligned with room capture |
+| `DetectionOverlay` | Interactive bounding box overlay identifying detected furniture and confidence scores |
+| `RelationshipGraph` | Visual NetworkX Spatial Relationship Graph (SRG) showing functional clusters and focal vectors |
+| `SpacingConnectors` | Visual clearance vector lines between neighboring furniture objects |
+| `SymmetryViewer` | Visualizes the room's centerline visual mass equilibrium and weighted offsets |
+| `SpaceUsageChart` | Percentage breakdown of usable floor area vs occupied furniture volume |
+
+### Scoring & Optimization
+| Component | Description |
+| --- | --- |
+| `ScoreCard` | Individual spatial score card (0-100) with category rating and badge |
+| `MetricGauge` | Animated circular SVG gauge for single-metric display |
+| `ClutterMeter` | Color-coded horizontal gauge tracking clutter density |
+| `OptimizationBreakdown` | Prioritized list of layout optimization recommendations with actionable adjustments |
+| `RadarMetricChart` | Recharts pentagon radar chart displaying all 5 spatial scores simultaneously |
 
 ### Comparison
 | Component | Description |
-|-----------|-------------|
-| `BeforeAfterSlider` | Interactive drag slider to reveal before/after room renders |
-| `ComparisonGrid` | Two-column grid with score delta indicators per metric |
+| --- | --- |
+| `BeforeAfterSlider` | Smooth touch/mouse drag slider comparing original photo with AI redesigned concept |
+| `ComparisonGrid` | Side-by-side room comparison cards showing exact metric deltas |
+
+### Upload & Inputs
+| Component | Description |
+| --- | --- |
+| `UploadDropzone` | Responsive drag-and-drop file upload zone with file validation |
+| `CameraGuidanceBanner` | Banner prompting users with best practices for room photography |
+| `CameraGuidanceModal` | Detailed illustrated guide for perspective, lighting, and clearance capture |
+| `RoomScaleSelector` | Presets for room dimensions (Compact, Standard, Expansive) |
+| `SpaceTypeSelector` | Presets for space functional context (Living Room, Bedroom, Studio, Office) |
+| `StylePresetSelector` | Aesthetic style cards for Japandi, Scandinavian, Industrial, Parisian, etc. |
 
 ---
 

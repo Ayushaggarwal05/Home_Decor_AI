@@ -46,28 +46,30 @@ backend/
 ├── app/
 │   ├── ai/                           # 🧠 Core AI Engine Modules
 │   │   ├── detection/
-│   │   │   ├── detector.py           # YOLOv8 furniture detection engine
+│   │   │   ├── detector.py           # Hybrid YOLOv8 + OpenRouter Qwen3-VL / Grounding DINO
 │   │   │   └── __init__.py           # DetectionModelInterface
 │   │   ├── segmentation/
-│   │   │   ├── segmenter.py          # SAM wall/floor segmentation
+│   │   │   ├── segmenter.py          # OpenCV Douglas-Peucker & SAM boundary extraction
 │   │   │   └── __init__.py
 │   │   ├── space_mapping/
-│   │   │   ├── mapper.py             # 2D occupancy grid generator
+│   │   │   ├── mapper.py             # Occupancy grid with anisotropic obstacle inflation
 │   │   │   └── __init__.py           # SpaceMapperInterface
+│   │   ├── spatial/
+│   │   │   └── spatial_relationship_graph.py # NetworkX Spatial Relationship Graph (SRG)
 │   │   ├── optimization/
-│   │   │   ├── solver.py             # Genetic Algorithm layout solver
+│   │   │   ├── solver.py             # NSGA-II Genetic Algorithm layout constraint solver
 │   │   │   └── __init__.py
 │   │   ├── placement/
 │   │   │   ├── placer.py             # Focal point placement heuristics
 │   │   │   └── __init__.py
 │   │   ├── scoring/
-│   │   │   ├── scorer.py             # Explainable scoring engine
+│   │   │   ├── scorer.py             # Explainable scoring engine (5 spatial metrics)
 │   │   │   └── __init__.py           # ScoringModelInterface
 │   │   ├── retrieval/
-│   │   │   ├── retriever.py          # CLIP-based inspiration matcher
+│   │   │   ├── retriever.py          # Style inspiration retrieval matcher
 │   │   │   └── __init__.py           # ConceptRetrievalInterface
 │   │   └── generation/
-│   │       ├── generator.py          # Stable Diffusion prompt mapper
+│   │       ├── generator.py          # Google Gemini 2.0 Flash & Imagen 3 render pipeline
 │   │       └── __init__.py           # ImageGenerationInterface
 │   │
 │   ├── api/                          # 🌐 REST API Layer
@@ -79,7 +81,7 @@ backend/
 │   │   │   ├── upload.py             # Room image upload
 │   │   │   ├── analyze.py            # Spatial analysis endpoints
 │   │   │   ├── optimize.py           # Layout optimization jobs
-│   │   │   ├── redesign.py           # Generative redesign requests
+│   │   │   ├── redesign.py           # Blueprint-conditioned generative redesign
 │   │   │   ├── scoring.py            # Score recalculation
 │   │   │   ├── compare.py            # Room metric comparison
 │   │   │   └── retrieval.py          # Style inspiration retrieval
@@ -130,14 +132,17 @@ backend/
 │   ├── tasks/                        # ⚙️ Celery Background Tasks
 │   │   ├── analysis_tasks.py         # Spatial analysis pipeline (default queue)
 │   │   ├── optimization_tasks.py     # Genetic Algorithm solver (default queue)
-│   │   └── redesign_tasks.py         # Stable Diffusion rendering (heavy_ai queue)
+│   │   └── redesign_tasks.py         # Generative rendering (heavy_ai queue)
 │   │
 │   ├── tests/                        # 🧪 Pytest Test Suite
 │   │   ├── conftest.py               # DB fixtures, client, Celery mocks
 │   │   ├── test_ai_engines.py        # IoU, GA solver, scoring engine tests
 │   │   ├── test_auth_api.py          # Auth signup/login/refresh API tests
 │   │   ├── test_room_api.py          # Room upload/scan/analysis API tests
-│   │   └── test_caching.py           # Redis cache decorator tests
+│   │   ├── test_caching.py           # Redis cache decorator tests
+│   │   ├── test_detector.py          # Detection pipeline tests
+│   │   ├── test_geometry.py          # Coordinate & polygon geometry tests
+│   │   └── test_hybrid_detector.py   # Hybrid YOLO + VLM reconciliation tests
 │   │
 │   ├── utils/                        # 🛠️ Utilities
 │   │   ├── geometry_utils.py         # IoU bounding box intersection calculator
@@ -160,45 +165,52 @@ backend/
 
 ## 🧠 AI Engine Architecture
 
-The AI pipeline is fully deterministic and explainable. Generative AI is only used at the final render stage.
+The AI pipeline is fully deterministic and explainable. Generative AI is strictly guided by the computed 2D layout constraints at the final rendering stage.
 
 ### Detection → `app/ai/detection/detector.py`
 
-- `YOLOv8Detector`: Wraps PyTorch object detection. Identifies furniture labels (`Sofa`, `Coffee Table`, `Armchair`, `Bed`, `Bookshelf`, `Door`, `Window`) with bounding box coordinates and confidence scores.
-- Falls back to high-fidelity simulated detections when PyTorch is unavailable.
+- **Hybrid Detection Pipeline**:
+  - `YOLOv8Detector`: Closed-vocabulary convolutional model for rapid detection of standard furniture categories and door/window boundaries.
+  - **Open-Vocabulary VLM Grounding**: Employs Qwen3-VL 30B via OpenRouter (`qwen/qwen3-vl-30b-a3b-instruct`) or Grounding DINO with room-type prompt conditioning for niche furniture and architectural fixtures.
+  - **Subclass-Aware Containment Suppression**: Automatically suppresses nested micro-hallucinations (e.g. cushions inside sofas, decor on tables) through containment ratio and IoU threshold filtering.
+  - **Semantic Vocabulary Reconciliation**: Normalizes disparate class names into canonical Home Decor taxonomy.
 
-### Segmentation → `app/ai/segmentation/segmenter.py`
+### Segmentation & Boundary Extraction → `app/ai/segmentation/segmenter.py`
 
-- `RoomSegmenter`: Uses SAM (Segment Anything Model) or OpenCV contour-detection to extract wall boundaries and floor regions as free-space coordinate masks.
+- `RoomSegmenter`: Combines real-time OpenCV morphological boundary extraction with Douglas-Peucker polygon approximation (sub-30ms, $O(W \times H)$) for room perimeters, with SAM fallback for complex wall/floor masking.
 
-### Space Mapping → `app/ai/space_mapping/mapper.py`
+### Space Mapping & Grid Generation → `app/ai/space_mapping/mapper.py`
 
-- `OccupancyGridGenerator`: Converts bounding box coordinates into a 10×10 grid matrix with cell states (`occupied`, `buffer`, `empty`). Calculates walkable ratio, footprint percentage, and dead-zone buffers.
+- `OccupancyGridGenerator`: Converts bounding boxes and walls into a 10×10 occupancy matrix (`occupied`, `buffer`, `empty`).
+- **Anisotropic Obstacle Inflation**: Selectively suppresses clearance padding along outer wall perimeters, eliminating "corridor pinching" while preserving interior walking pathways.
+
+### Spatial Relationship Graph (SRG) → `app/ai/spatial/spatial_relationship_graph.py`
+
+- Builds a NetworkX graph linking furniture objects and room envelope boundaries. Evaluates conversational clusters, line-of-sight focal alignments, and natural light vectors.
 
 ### Optimization → `app/ai/optimization/solver.py`
 
-- `LayoutConstraintSolver`: A **full Genetic Algorithm** implementation:
-  - **Genes**: `(x, y)` position coordinates for each furniture item
-  - **Fitness function**: Penalizes IoU overlaps, doorway blockages, and asymmetry; rewards clearance and visual balance
-  - **Operations**: Tournament selection, crossover, mutation with boundary constraints
-  - **Output**: Optimized layout + explainable move descriptions
+- `LayoutConstraintSolver`: An elitist **NSGA-II Multi-Objective Genetic Algorithm**:
+  - **Graph-Preserving Crossover**: Inherits functionally coupled furniture ensembles (e.g., dining table + chairs) as unified rigid geometric blocks.
+  - **5 Targeted Domain Mutations**: `group_slide`, `focal_align`, `wall_snap`, `conversational_balance`, and `avoid_doorway`.
+  - **Fitness Function**: Hard constraints (zero physical collision, boundary containment, doorway clearance) and soft objectives (symmetry, flow, lighting exposure).
+  - **State Hashing & Memoization**: Caches layout evaluations to accelerate convergence across 60 generations.
 
 ### Scoring → `app/ai/scoring/scorer.py`
 
-- `ExplainableScoringEngine`: Produces `0–100` scores for:
-  - **Clutter**: Total furniture footprint density vs. room area
-  - **Symmetry**: Average x-center deviation from room midline
-  - **Accessibility**: Pathway clearance checking via IoU collision detection
-  - **Flow**: Derived from accessibility and clutter
-  - **Lighting**: Mock daylight orientation scoring (extensible)
-
-### Retrieval → `app/ai/retrieval/retriever.py`
-
-- `InspirationMatcher`: Tag-based and style-based catalog search (simulates CLIP + FAISS in production).
+- `ExplainableScoringEngine`: Computes deterministic `0–100` scores with natural-language rationales:
+  - **Clutter**: Furniture footprint density vs. room floor area
+  - **Symmetry**: Visual mass distribution across room centerlines
+  - **Accessibility**: Pathway clearance checking via collision geometry
+  - **Flow**: Circulation network graph conductivity
+  - **Lighting**: Daylight portal orientation and obstruction vectors
 
 ### Generation → `app/ai/generation/generator.py`
 
-- `RedesignImageGenerator`: Maps optimized layout + style prompt to Stable Diffusion ControlNet renders. Returns redesigned room URL + decor change suggestions per style (`Japandi Harmony`, `Industrial Loft`, `Scandinavian Crisp`).
+- `RedesignImageGenerator`: Multimodal generative redesign powered by **Google Gemini 2.0 Flash and Google Imagen 3 (`imagen-3.0-generate-002`)**:
+  - Translates selected 2D architectural blueprint layouts and structural envelope anchors (doors, windows, walls) into spatial conditioning prompts.
+  - Renders photorealistic 8K concept images adhering to chosen design presets (`Japandi Harmony`, `Industrial Loft`, `Scandinavian Crisp`, `Modern Biophilic`, `Mid-Century Chic`, `Parisian Luxury`).
+  - Includes curated high-resolution visual fallbacks and design recommendations.
 
 ---
 
@@ -241,7 +253,7 @@ All routes are prefixed with `/api`. Authenticated routes require `Authorization
 
 | Method | Endpoint                       | Auth | Description                          |
 | ------ | ------------------------------ | ---- | ------------------------------------ |
-| `POST` | `/api/redesign`                | ✅   | Trigger generative redesign pipeline |
+| `POST` | `/api/redesign`                | ✅   | Trigger generative redesign pipeline (supports style, prompt, `blueprint_id`, `blueprint_layout`) |
 | `GET`  | `/api/redesign/{job_id}`       | ✅   | Poll redesign status and render URLs |
 | `GET`  | `/api/redesign/room/{room_id}` | ✅   | List all redesigns for a room        |
 
@@ -292,10 +304,10 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ### 5. Run Celery Workers (separate terminals)
 
 ```bash
-# CPU worker — analysis and optimization tasks in venv
+# CPU worker — analysis, boundary extraction, and GA optimization tasks
 celery -A app.tasks.analysis_tasks.celery_app worker -Q default --loglevel=info
 
-# GPU worker — heavy Stable Diffusion tasks
+# Heavy AI worker — generative redesign rendering tasks
 celery -A app.tasks.analysis_tasks.celery_app worker -Q heavy_ai --loglevel=info --concurrency=1
 ```
 
@@ -362,11 +374,14 @@ docker compose down -v
 ## 🧪 Testing
 
 ```bash
-# Run full Pytest suite (9 tests)
+# Run full Pytest suite
 python -m pytest app/tests/ -v
 
-# Run only AI engine unit tests
-python -m unittest app/tests/test_ai_engines.py
+# Run AI engine unit tests
+python -m pytest app/tests/test_ai_engines.py -v
+
+# Run hybrid detection & geometry validation
+python -m pytest app/tests/test_hybrid_detector.py app/tests/test_geometry.py -v
 
 # Run syntax compilation check across all modules
 python -m compileall -f app
@@ -379,6 +394,9 @@ python -m compileall -f app
 | `test_auth_api.py` | Signup, login, refresh token rotation, invalid token rejection |
 | `test_room_api.py` | Image upload validation, room scan creation, inspiration retrieval |
 | `test_caching.py` | Redis cache bypass in test environments |
+| `test_detector.py` | Standalone object detection pipeline |
+| `test_hybrid_detector.py` | Hybrid YOLOv8 + VLM containment ratio suppression and label normalization |
+| `test_geometry.py` | Coordinate math, bounding box polygons, and IoU intersection |
 
 ---
 
@@ -423,7 +441,7 @@ SECRET_KEY=your-secret-key
 
 # JWT Tokens
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
+REFRESH_TOKEN_EXPIRE_HOURS=12
 
 # PostgreSQL
 POSTGRES_USER=homedecor_user
@@ -432,8 +450,18 @@ POSTGRES_SERVER=db
 POSTGRES_PORT=5432
 POSTGRES_DB=homedecor_db
 
-# Redis
+# Redis & Celery
 REDIS_URL=redis://redis:6379/0
+CELERY_ALWAYS_EAGER=false
+
+# OpenRouter / VLM Object Detection
+OPENROUTER_API_KEY=your_openrouter_api_key
+DINO_API_MODEL=qwen/qwen3-vl-30b-a3b-instruct
+
+# Google Gemini & Imagen API (Generative Redesign)
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.0-flash
+IMAGEN_MODEL=imagen-3.0-generate-002
 
 # Cloudinary (production storage)
 CLOUDINARY_CLOUD_NAME=your_cloud_name

@@ -15,8 +15,8 @@
 Matter AI is a full-stack, research-grade SaaS platform designed to offer spatial intelligence, layout optimization, and generative restyling for residential and commercial interiors. The platform addresses the visual gap and spatial inefficiencies in home design by combining a deterministic spatial analysis pipeline with a generative design render studio. 
 
 The application partitions its core value proposition into two distinct user modes:
-1. **🔬 Research Lab Mode**: A purely deterministic workspace that performs computer-vision-based spatial layout calculations, generates 2D occupancy grids, and scores room layouts against explainable metrics (Clutter, Symmetry, Accessibility, Flow, and Lighting).
-2. **🎨 Smart Design Studio Mode**: A generative, constraint-solving workspace that runs a room's furniture layout through a custom Genetic Algorithm to optimize positioning and clearance, and generates high-fidelity restyled room concepts using Stable Diffusion based on style prompts (e.g., Japandi, Scandinavian).
+1. **🔬 Research Lab Mode**: A purely deterministic workspace that performs computer-vision-based spatial layout calculations, generates 2D occupancy grids, maps Spatial Relationship Graphs (SRG), and scores room layouts against explainable metrics (Clutter, Symmetry, Accessibility, Flow, and Lighting).
+2. **🎨 Smart Design Studio Mode**: A generative, constraint-solving workspace that runs a room's furniture layout through a custom NSGA-II Genetic Algorithm to optimize positioning and clearance, synthesizes interactive 2D floorplan CAD blueprints, and generates photorealistic restyled room concepts using Google Gemini 2.0 Flash & Google Imagen 3 conditioned directly on the architectural blueprint layout.
 
 Unlike ordinary image-generation or virtual staging tools that hallucinate furniture placement and disregard real-world constraints, Matter AI operates on a **deterministic spatial intelligence substrate**. It ensures that every optimized recommendation is functionally viable, accessibility-compliant, and mathematically grounded before any aesthetic generation is rendered.
 
@@ -24,12 +24,12 @@ Unlike ordinary image-generation or virtual staging tools that hallucinate furni
 
 ## 2. Core Architecture & Tech Stack
 
-The system is developed as a containerized, decoupled monorepo containing a Python FastAPI backend and a Next.js 15 frontend.
+The system is developed as a containerized, decoupled monorepo containing a Python FastAPI backend and a Next.js 16 (React 19) frontend.
 
 ```
 HomeDecor/
 ├── backend/                  # Python API, AI Engines, & Celery workers
-└── frontend/                 # Next.js 15 App Router web client
+└── frontend/                 # Next.js 16 App Router web client
 ```
 
 ### Backend Tech Stack
@@ -38,52 +38,53 @@ HomeDecor/
 * **PostgreSQL (v15)**: Relational database storing user records, room states, analyses, optimizations, and redesign histories.
 * **SQLAlchemy (v2.0+) & Alembic (v1.3+)**: Typed ORM mapping and database migrations.
 * **Celery (v5.3+) & Redis (v7)**: Distributed task workers mapping background processing jobs with Redis acting as broker and result backend.
-* **Pillow (v10.2+)**: Local image compression, format standardization, and progressive JPEG encoding.
+* **Ultralytics YOLOv8 & OpenRouter Qwen3-VL**: Hybrid perception combining convolutional detection and Zero-Shot vision-language grounding with subclass containment suppression.
+* **NetworkX & SciPy**: Spatial Relationship Graph (SRG) topological modeling and geometric calculations.
+* **Google Gemini & Imagen 3 APIs**: Multimodal prompt synthesis and architectural blueprint-guided 8K generative redesign rendering.
+* **Pillow (v10.2+) & OpenCV**: Image compression, progressive JPEG encoding, and Douglas-Peucker morphological boundary extraction.
 * **Cloudinary CDN**: External media hosting for room uploads in production.
 
 ### Frontend Tech Stack
-* **Next.js (v15.x/16.x) & React (v19.x)**: File-system-routed React framework utilizing Server Components and client-side layouts. Central structure in [layout.tsx](file:///k:/Work/projects/HomeDecor/frontend/app/layout.tsx).
+* **Next.js (v16.x) & React (v19.x)**: File-system-routed React framework utilizing Server Components and client-side layouts. Central structure in [layout.tsx](file:///k:/Work/projects/HomeDecor/frontend/app/layout.tsx).
 * **TypeScript (v5.x)**: Static type checks across client states and API communications.
-* **Tailwind CSS v4**: Utility-first styling engine.
+* **Tailwind CSS v4**: Utility-first styling engine with isolated theme variables.
 * **Zustand (v5.x)**: Lightweight client state management configured at [roomStore.ts](file:///k:/Work/projects/HomeDecor/frontend/store/roomStore.ts).
 * **TanStack Query (v5.x)**: Async server state synchronizer, query caching, and status polling.
-* **Framer Motion (v12.x)**: Entrance transitions and dynamic micro-animations.
-* **Recharts (v3.x)**: Radar chart metrics visualization.
+* **Framer Motion (v12.x)**: Entrance transitions, interactive before/after comparison sliders, and dynamic micro-animations.
+* **Recharts (v3.x)**: Radar chart metrics visualization and area breakdown.
 * **Axios (v1.18+)**: API client configured with request interceptors for token injection at [api.ts](file:///k:/Work/projects/HomeDecor/frontend/services/api.ts).
 
 ---
 
 ## 3. Core AI Engine & Pipeline Flow
 
-The AI pipeline separates spatial reasoning from image synthesis. Only the final image rendering stage uses generative AI.
+The AI pipeline separates spatial reasoning from image synthesis. Only the final image rendering stage uses generative AI, conditioned on computed 2D CAD blueprints.
 
 ```mermaid
 graph TD
-    A[Image Upload] --> B[YOLOv8 Object Detector]
-    B --> C[SAM Segmenter]
-    C --> D[Occupancy Grid Generator]
-    D --> E[Genetic Algorithm Solver]
-    E --> F[Explainable Scoring Engine]
-    F --> G[CLIP Retrieval Matcher]
-    G --> H[Stable Diffusion Render Generator]
+    A[Image Upload] --> B[Hybrid YOLOv8 + Qwen3-VL / DINO Detector]
+    B --> C[Subclass Containment Suppression]
+    C --> D[OpenCV Boundary Extractor]
+    D --> E[Anisotropic Occupancy Grid Generator]
+    E --> F[NetworkX Spatial Relationship Graph]
+    F --> G[NSGA-II Genetic Algorithm Solver]
+    G --> H[Explainable Scoring Engine]
+    H --> I[2D Floorplan Blueprint Synthesis]
+    I --> J[Google Gemini 2.0 Flash / Imagen 3 Generative Redesign]
 ```
 
 ### AI Pipeline Components:
-* **YOLOv8 Detection**: Implemented in [detector.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/detection/detector.py). Detects key furniture classes (`Sofa`, `Coffee Table`, `Armchair`, `Bed`, `Bookshelf`, `Door`, `Window`) with bounding boxes and confidence metrics.
-* **SAM Segmentation**: Implemented in [segmenter.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/segmentation/segmenter.py). Isolates wall borders and floor margins as coordinate-based free-space masks.
-* **Space Mapping**: Implemented in [mapper.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/space_mapping/mapper.py). Generates a 2D matrix representing walkable, occupied, and clearance-buffer cells.
-* **Genetic Algorithm Solver**: Implemented in [solver.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/optimization/solver.py). Executes NSGA-II Multi-Objective optimization with the following specifications:
-  * *Parameters*: Population Size = 40, Generations = 60, Mutation Rate = 0.20, Crossover Rate = 0.75.
+* **Hybrid Perception**: Implemented in [detector.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/detection/detector.py). Fuses YOLOv8 with OpenRouter Qwen3-VL 30B / Grounding DINO with subclass containment ratio filtering ($CR > 0.65$) to eliminate micro-hallucinations and reconcile standard furniture taxonomy.
+* **Perimeter Extraction**: Implemented in [segmenter.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/segmentation/segmenter.py). OpenCV morphological boundary extraction and Douglas-Peucker polygon approximation (sub-30ms) with SAM fallback.
+* **Space Mapping**: Implemented in [mapper.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/space_mapping/mapper.py). Generates a 2D matrix with anisotropic obstacle inflation (exempting wall perimeter edges to eliminate false walkway pinch points).
+* **Spatial Relationship Graph**: Implemented in [spatial_relationship_graph.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/spatial/spatial_relationship_graph.py). NetworkX graph capturing functional couplings and focal line-of-sight vectors.
+* **NSGA-II Genetic Algorithm Solver**: Implemented in [solver.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/optimization/solver.py). Executes elitist Multi-Objective optimization with:
+  * *Parameters*: Population Size = 40, Generations = 60, Mutation Rate = 0.20, Crossover Rate = 0.75, memoized state hashing.
+  * *Operators*: Graph-preserving connected component crossover; 5 targeted domain mutations (`group_slide`, `focal_align`, `wall_snap`, `conversational_balance`, `avoid_doorway`).
   * *Objectives*: Minimizes bounding box overlaps, door/window pathway obstruction, and asymmetry; maximizes perimeter alignment and clear path vectors.
-  * *Output*: Optimized coordinate positions and explainable text-based layout adjustment suggestions.
-* **Explainable Scoring**: Implemented in [scorer.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/scoring/scorer.py). Renders 0-100 scores across:
-  * *Clutter*: Occupied floor ratio against room dimensions.
-  * *Symmetry*: Absolute midline horizontal offsets of matching furniture configurations.
-  * *Accessibility*: Clearance buffer width around detected pathways.
-  * *Flow*: Computed index based on layout walkability.
-  * *Lighting*: Windows orientation vs key occupancy spots.
-* **CLIP Retrieval**: Implemented in [retriever.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/retrieval/retriever.py). Matches text prompt style requirements to style catalog assets.
-* **Stable Diffusion Renditions**: Implemented in [generator.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/generation/generator.py). Performs final image styling rendering.
+  * *Output*: Optimized coordinate positions, 2D floorplan blueprints, and explainable layout advice.
+* **Explainable Scoring**: Implemented in [scorer.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/scoring/scorer.py). Renders 0-100 scores across Clutter, Symmetry, Accessibility, Flow, and Lighting.
+* **Multimodal Generative Redesign**: Implemented in [generator.py](file:///k:/Work/projects/HomeDecor/backend/app/ai/generation/generator.py). Synthesizes selected 2D CAD blueprint layout coordinates and structural anchors into descriptive spatial prompts rendered via Google Gemini 2.0 Flash & Imagen 3 (`imagen-3.0-generate-002`), with high-res curated style fallbacks.
 
 ---
 
@@ -274,7 +275,8 @@ The analysis pipeline generates a complete suite of spatial assets stored in the
 ### 5.4 Smart Design Studio (Layout Optimizer & Restyler)
 * **Route**: Client interface configured at [page.tsx](file:///k:/Work/projects/HomeDecor/frontend/app/redesign/page.tsx).
 * **Layout Optimization**: Executes the Genetic Solver by calling [optimize.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/optimize.py), yielding step-by-step room modifications and delta metrics shown in [OptimizationBreakdown.tsx](file:///k:/Work/projects/HomeDecor/frontend/components/scoring/OptimizationBreakdown.tsx).
-* **Style Selection & Rendering**: Dispatches redesign tasks using [redesign.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/redesign.py). Renders are executed via Stable Diffusion pipelines matching selected prompts.
+* **2D Floorplan Blueprints**: Generates candidate CAD floorplan blueprints via [BlueprintFloorplan.tsx](file:///k:/Work/projects/HomeDecor/frontend/components/blueprint/BlueprintFloorplan.tsx), allowing users to review and select precise 2D layouts before rendering.
+* **Style Selection & Rendering**: Dispatches redesign tasks using [redesign.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/redesign.py). Renders are executed via Google Gemini 2.0 Flash and Google Imagen 3 (`imagen-3.0-generate-002`) pipelines conditioned on the selected 2D blueprint layout coordinates and architectural anchors.
 * **Before/After Comparer**: Evaluates original layouts vs redesign outputs with an interactive slider in [BeforeAfterSlider.tsx](file:///k:/Work/projects/HomeDecor/frontend/components/comparison/BeforeAfterSlider.tsx).
 
 ### 5.5 Room Metric Comparison Tool
@@ -316,7 +318,7 @@ All communication passes through the FastAPI controller mounted at [router.py](f
 | `GET` | `/api/analyze/room/{id}/result`| None | Retrieve occupancy grid mappings and scores. | [analyze.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/analyze.py) |
 | `POST` | `/api/optimize` | `default` | Launch Genetic Solver placement optimization job. | [optimize.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/optimize.py) |
 | `GET` | `/api/optimize/{job_id}` | None | Poll execution status of layout solver task. | [optimize.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/optimize.py) |
-| `POST` | `/api/redesign` | `heavy_ai` | Trigger prompt-based Stable Diffusion redesign render. | [redesign.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/redesign.py) |
+| `POST` | `/api/redesign` | `heavy_ai` | Trigger multimodal generative redesign render using Google Gemini / Imagen 3 conditioned on blueprint coordinates. | [redesign.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/redesign.py) |
 | `GET` | `/api/redesign/{job_id}` | None | Poll status of image styling render job. | [redesign.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/redesign.py) |
 | `POST` | `/api/scoring/recalculate` | None | Recalculate scores synchronously for manual coordinates. | [scoring.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/scoring.py) |
 | `GET` | `/api/retrieval/inspirations` | None | Query style inspiration catalog matching keywords. | [retrieval.py](file:///k:/Work/projects/HomeDecor/backend/app/api/routes/retrieval.py) |
@@ -329,10 +331,10 @@ All communication passes through the FastAPI controller mounted at [router.py](f
 
 ### 7.1 Performance & Scalability
 * **API Latency**: Synchronous requests (excluding AI generation runs) must return responses within 200ms. Response caching is handled via Redis cache decorators in [cache.py](file:///k:/Work/projects/HomeDecor/backend/app/utils/cache.py).
-* **Asynchronous Offloading**: Long-running layout computations and heavy GPU-based rendering runs must be isolated to prevent thread blocks on the primary FastAPI HTTP thread. 
+* **Asynchronous Offloading**: Long-running layout computations and heavy rendering runs must be isolated to prevent thread blocks on the primary FastAPI HTTP thread. 
 * **Worker Queue Separation**:
-  * *Default Queue*: Standard CPU workers processing fast detection arrays and layout optimizations.
-  * *Heavy AI Queue*: GPU-supported workers running Stable Diffusion image synthesis workloads. Configured in [docker-compose.prod.yml](file:///k:/Work/projects/HomeDecor/backend/docker-compose.prod.yml).
+  * *Default Queue*: Standard CPU workers processing fast detection arrays, morphological boundaries, and layout optimizations.
+  * *Heavy AI Queue*: Workers executing multimodal generative redesign rendering workflows. Configured in [docker-compose.prod.yml](file:///k:/Work/projects/HomeDecor/backend/docker-compose.prod.yml).
 
 ### 7.2 Security & Compliance
 * **Data Transit**: TLS 1.3 encryption across all HTTP endpoints.
@@ -413,12 +415,12 @@ Matter AI operates on a tiered subscription pricing model, segments features by 
 | Feature Capability | Free Tier | Pro Tier ($29/mo) | Enterprise Tier ($149/mo) |
 | :--- | :--- | :--- | :--- |
 | **Room Scan Scopes** | Max 3 active rooms | Unlimited | Unlimited |
-| **Analysis Pipeline** | Standard CPU (YOLO fallback) | True GPU-accelerated YOLO/SAM | High-fidelity segmentation sweeps |
+| **Analysis Pipeline** | Standard CPU (YOLO fallback) | True Hybrid YOLO + VLM Grounding | High-fidelity segmentation sweeps |
 | **Layout Optimizations**| Standard NSGA-II Solver | Custom parameter lock profiles | Multi-constraint optimization |
-| **Stable Diffusion Renders**| 5 renders / month | 250 renders / month | Unlimited (Dedicated GPU priority) |
+| **AI Redesign Renders**| 5 renders / month | 250 renders / month | Unlimited (Dedicated rendering priority) |
 | **SaaS Projects & History**| Room history only | Version history (max 30 iterations) | Full iterations + version branches |
 | **Team Workspaces** | ❌ (Single seat) | ❌ (Single seat) | Unlimited seats + client portals |
-| **Exports & Presentations**| Standard screen captures | Downloadable PDF reports | Custom white-label exports |
+| **Exports & Presentations**| Standard screen captures | Downloadable PDF reports & GeoJSON | Custom white-label exports |
 | **Support SLA** | Community support | 24-hour response SLA | Dedicated Slack + real-time assistance |
 
 ---
@@ -493,9 +495,9 @@ To guide UX and design choices, the product is built around five target user pro
 
 To evaluate the product performance, we track these primary success vectors:
 
-* **Average Analysis Time**: Target < 12 seconds for YOLO + SAM + occupancy mapping.
+* **Average Analysis Time**: Target < 5 seconds for Hybrid YOLO/VLM + OpenCV boundary + occupancy mapping.
 * **Optimization Latency**: Target < 3 seconds for NSGA-II Genetic layout configurations.
-* **Rendering Time**: Target < 25 seconds for Stable Diffusion image synthesis queue response.
+* **Rendering Time**: Target < 15 seconds for Google Gemini / Imagen 3 redesign response.
 * **API Latency**: Target < 200ms response time for standard database read/write actions.
 * **Detection Accuracy**: Target > 92% Mean Average Precision (mAP) for primary furniture categories.
 * **Recommendation Acceptance Rate**: Target > 40% of suggestions (e.g. "Move bed") accepted or saved by users.
@@ -507,12 +509,12 @@ To evaluate the product performance, we track these primary success vectors:
 ## 14. Risks and Assumptions
 
 ### Risks
-* **Occluded/Merged Furniture**: Furniture blocking each other (e.g. a chair behind a table) can cause YOLOv8 detection to fail.
-  * *Mitigation*: Enable manual object addition and box editing in the UI.
-* **Poor Image Lighting/Angles**: Low-light photos or extreme camera angles limit SAM boundary segmentation.
-  * *Mitigation*: Require minimal dimensions (e.g., 1024px width) and display angle correction tips in the upload view.
-* **GPU Cloud Scaling Costs**: Stable Diffusion render queues can become expensive under high traffic.
-  * *Mitigation*: Enforce strict subscription limits on restyling commands and configure auto-scaling GPU nodes.
+* **Occluded/Merged Furniture**: Furniture blocking each other (e.g. a chair behind a table) can cause detection discrepancies.
+  * *Mitigation*: Subclass-aware containment suppression operator and manual bounding box adjustments.
+* **Poor Image Lighting/Angles**: Low-light photos or extreme camera angles limit boundary extraction.
+  * *Mitigation*: Require minimal dimensions and display camera guidance modals in the upload view.
+* **Generative API Rate Limits**: External multimodal APIs can hit quotas or experience network latency.
+  * *Mitigation*: Automatic fallbacks to curated high-resolution architectural style concepts and local asset caching.
 * **Rounding/Measurement Errors**: Users inputting incorrect room sizes will skew actual clearance dimensions.
   * *Mitigation*: Emphasize calibration rules in the user onboarding tutorial.
 
